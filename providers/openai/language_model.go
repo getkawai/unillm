@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	xjson "github.com/charmbracelet/x/json"
-	"github.com/google/uuid"
 	"github.com/getkawai/unillm"
 	"github.com/getkawai/unillm/object"
 	"github.com/getkawai/unillm/schema"
+	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/shared"
@@ -23,7 +23,7 @@ type languageModel struct {
 	provider                   string
 	modelID                    string
 	client                     openai.Client
-	objectMode                 fantasy.ObjectMode
+	objectMode                 unillm.ObjectMode
 	prepareCallFunc            LanguageModelPrepareCallFunc
 	mapFinishReasonFunc        LanguageModelMapFinishReasonFunc
 	extraContentFunc           LanguageModelExtraContentFunc
@@ -87,11 +87,11 @@ func WithLanguageModelToPromptFunc(fn LanguageModelToPromptFunc) LanguageModelOp
 }
 
 // WithLanguageModelObjectMode sets the object generation mode.
-func WithLanguageModelObjectMode(om fantasy.ObjectMode) LanguageModelOption {
+func WithLanguageModelObjectMode(om unillm.ObjectMode) LanguageModelOption {
 	return func(l *languageModel) {
 		// not supported
-		if om == fantasy.ObjectModeJSON {
-			om = fantasy.ObjectModeAuto
+		if om == unillm.ObjectModeJSON {
+			om = unillm.ObjectModeAuto
 		}
 		l.objectMode = om
 	}
@@ -102,7 +102,7 @@ func newLanguageModel(modelID string, provider string, client openai.Client, opt
 		modelID:                    modelID,
 		provider:                   provider,
 		client:                     client,
-		objectMode:                 fantasy.ObjectModeAuto,
+		objectMode:                 unillm.ObjectModeAuto,
 		prepareCallFunc:            DefaultPrepareCallFunc,
 		mapFinishReasonFunc:        DefaultMapFinishReasonFunc,
 		usageFunc:                  DefaultUsageFunc,
@@ -124,22 +124,22 @@ type streamToolCall struct {
 	hasFinished bool
 }
 
-// Model implements fantasy.LanguageModel.
+// Model implements unillm.LanguageModel.
 func (o languageModel) Model() string {
 	return o.modelID
 }
 
-// Provider implements fantasy.LanguageModel.
+// Provider implements unillm.LanguageModel.
 func (o languageModel) Provider() string {
 	return o.provider
 }
 
-func (o languageModel) prepareParams(call fantasy.Call) (*openai.ChatCompletionNewParams, []fantasy.CallWarning, error) {
+func (o languageModel) prepareParams(call unillm.Call) (*openai.ChatCompletionNewParams, []unillm.CallWarning, error) {
 	params := &openai.ChatCompletionNewParams{}
 	messages, warnings := o.toPromptFunc(call.Prompt, o.provider, o.modelID)
 	if call.TopK != nil {
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedSetting,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedSetting,
 			Setting: "top_k",
 		})
 	}
@@ -165,32 +165,32 @@ func (o languageModel) prepareParams(call fantasy.Call) (*openai.ChatCompletionN
 		// see https://platform.openai.com/docs/guides/reasoning#limitations
 		if call.Temperature != nil {
 			params.Temperature = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "temperature",
 				Details: "temperature is not supported for reasoning models",
 			})
 		}
 		if call.TopP != nil {
 			params.TopP = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "TopP",
 				Details: "TopP is not supported for reasoning models",
 			})
 		}
 		if call.FrequencyPenalty != nil {
 			params.FrequencyPenalty = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "FrequencyPenalty",
 				Details: "FrequencyPenalty is not supported for reasoning models",
 			})
 		}
 		if call.PresencePenalty != nil {
 			params.PresencePenalty = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "PresencePenalty",
 				Details: "PresencePenalty is not supported for reasoning models",
 			})
@@ -209,8 +209,8 @@ func (o languageModel) prepareParams(call fantasy.Call) (*openai.ChatCompletionN
 	if isSearchPreviewModel(o.modelID) {
 		if call.Temperature != nil {
 			params.Temperature = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "temperature",
 				Details: "temperature is not supported for the search preview models and has been removed.",
 			})
@@ -240,8 +240,8 @@ func (o languageModel) prepareParams(call fantasy.Call) (*openai.ChatCompletionN
 	return params, warnings, nil
 }
 
-// Generate implements fantasy.LanguageModel.
-func (o languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantasy.Response, error) {
+// Generate implements unillm.LanguageModel.
+func (o languageModel) Generate(ctx context.Context, call unillm.Call) (*unillm.Response, error) {
 	params, warnings, err := o.prepareParams(call)
 	if err != nil {
 		return nil, err
@@ -252,13 +252,13 @@ func (o languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantas
 	}
 
 	if len(response.Choices) == 0 {
-		return nil, &fantasy.Error{Title: "no response", Message: "no response generated"}
+		return nil, &unillm.Error{Title: "no response", Message: "no response generated"}
 	}
 	choice := response.Choices[0]
-	content := make([]fantasy.Content, 0, 1+len(choice.Message.ToolCalls)+len(choice.Message.Annotations))
+	content := make([]unillm.Content, 0, 1+len(choice.Message.ToolCalls)+len(choice.Message.Annotations))
 	text := choice.Message.Content
 	if text != "" {
-		content = append(content, fantasy.TextContent{
+		content = append(content, unillm.TextContent{
 			Text: text,
 		})
 	}
@@ -268,7 +268,7 @@ func (o languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantas
 	}
 	for _, tc := range choice.Message.ToolCalls {
 		toolCallID := tc.ID
-		content = append(content, fantasy.ToolCallContent{
+		content = append(content, unillm.ToolCallContent{
 			ProviderExecuted: false,
 			ToolCallID:       toolCallID,
 			ToolName:         tc.Function.Name,
@@ -277,8 +277,8 @@ func (o languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantas
 	}
 	for _, annotation := range choice.Message.Annotations {
 		if annotation.Type == "url_citation" {
-			content = append(content, fantasy.SourceContent{
-				SourceType: fantasy.SourceTypeURL,
+			content = append(content, unillm.SourceContent{
+				SourceType: unillm.SourceTypeURL,
 				ID:         uuid.NewString(),
 				URL:        annotation.URLCitation.URL,
 				Title:      annotation.URLCitation.Title,
@@ -290,21 +290,21 @@ func (o languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantas
 
 	mappedFinishReason := o.mapFinishReasonFunc(choice.FinishReason)
 	if len(choice.Message.ToolCalls) > 0 {
-		mappedFinishReason = fantasy.FinishReasonToolCalls
+		mappedFinishReason = unillm.FinishReasonToolCalls
 	}
-	return &fantasy.Response{
+	return &unillm.Response{
 		Content:      content,
 		Usage:        usage,
 		FinishReason: mappedFinishReason,
-		ProviderMetadata: fantasy.ProviderMetadata{
+		ProviderMetadata: unillm.ProviderMetadata{
 			Name: providerMetadata,
 		},
 		Warnings: warnings,
 	}, nil
 }
 
-// Stream implements fantasy.LanguageModel.
-func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.StreamResponse, error) {
+// Stream implements unillm.LanguageModel.
+func (o languageModel) Stream(ctx context.Context, call unillm.Call) (unillm.StreamResponse, error) {
 	params, warnings, err := o.prepareParams(call)
 	if err != nil {
 		return nil, err
@@ -318,17 +318,17 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 	isActiveText := false
 	toolCalls := make(map[int64]streamToolCall)
 
-	providerMetadata := fantasy.ProviderMetadata{
+	providerMetadata := unillm.ProviderMetadata{
 		Name: &ProviderMetadata{},
 	}
 	acc := openai.ChatCompletionAccumulator{}
 	extraContext := make(map[string]any)
-	var usage fantasy.Usage
+	var usage unillm.Usage
 	var finishReason string
-	return func(yield func(fantasy.StreamPart) bool) {
+	return func(yield func(unillm.StreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.StreamPart{
-				Type:     fantasy.StreamPartTypeWarnings,
+			if !yield(unillm.StreamPart{
+				Type:     unillm.StreamPartTypeWarnings,
 				Warnings: warnings,
 			}) {
 				return
@@ -349,15 +349,15 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 				case choice.Delta.Content != "":
 					if !isActiveText {
 						isActiveText = true
-						if !yield(fantasy.StreamPart{
-							Type: fantasy.StreamPartTypeTextStart,
+						if !yield(unillm.StreamPart{
+							Type: unillm.StreamPartTypeTextStart,
 							ID:   "0",
 						}) {
 							return
 						}
 					}
-					if !yield(fantasy.StreamPart{
-						Type:  fantasy.StreamPartTypeTextDelta,
+					if !yield(unillm.StreamPart{
+						Type:  unillm.StreamPartTypeTextDelta,
 						ID:    "0",
 						Delta: choice.Delta.Content,
 					}) {
@@ -366,8 +366,8 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 				case len(choice.Delta.ToolCalls) > 0:
 					if isActiveText {
 						isActiveText = false
-						if !yield(fantasy.StreamPart{
-							Type: fantasy.StreamPartTypeTextEnd,
+						if !yield(unillm.StreamPart{
+							Type: unillm.StreamPartTypeTextEnd,
 							ID:   "0",
 						}) {
 							return
@@ -382,8 +382,8 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 							if toolCallDelta.Function.Arguments != "" {
 								existingToolCall.arguments += toolCallDelta.Function.Arguments
 							}
-							if !yield(fantasy.StreamPart{
-								Type:  fantasy.StreamPartTypeToolInputDelta,
+							if !yield(unillm.StreamPart{
+								Type:  unillm.StreamPartTypeToolInputDelta,
 								ID:    existingToolCall.id,
 								Delta: toolCallDelta.Function.Arguments,
 							}) {
@@ -391,15 +391,15 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 							}
 							toolCalls[toolCallDelta.Index] = existingToolCall
 							if xjson.IsValid(existingToolCall.arguments) {
-								if !yield(fantasy.StreamPart{
-									Type: fantasy.StreamPartTypeToolInputEnd,
+								if !yield(unillm.StreamPart{
+									Type: unillm.StreamPartTypeToolInputEnd,
 									ID:   existingToolCall.id,
 								}) {
 									return
 								}
 
-								if !yield(fantasy.StreamPart{
-									Type:          fantasy.StreamPartTypeToolCall,
+								if !yield(unillm.StreamPart{
+									Type:          unillm.StreamPartTypeToolCall,
 									ID:            existingToolCall.id,
 									ToolCallName:  existingToolCall.name,
 									ToolCallInput: existingToolCall.arguments,
@@ -412,24 +412,24 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 						} else {
 							var err error
 							if toolCallDelta.Type != "function" {
-								err = &fantasy.Error{Title: "invalid provider response", Message: "expected 'function' type."}
+								err = &unillm.Error{Title: "invalid provider response", Message: "expected 'function' type."}
 							}
 							if toolCallDelta.ID == "" {
-								err = &fantasy.Error{Title: "invalid provider response", Message: "expected 'id' to be a string."}
+								err = &unillm.Error{Title: "invalid provider response", Message: "expected 'id' to be a string."}
 							}
 							if toolCallDelta.Function.Name == "" {
-								err = &fantasy.Error{Title: "invalid provider response", Message: "expected 'function.name' to be a string."}
+								err = &unillm.Error{Title: "invalid provider response", Message: "expected 'function.name' to be a string."}
 							}
 							if err != nil {
-								yield(fantasy.StreamPart{
-									Type:  fantasy.StreamPartTypeError,
+								yield(unillm.StreamPart{
+									Type:  unillm.StreamPartTypeError,
 									Error: toProviderErr(stream.Err()),
 								})
 								return
 							}
 
-							if !yield(fantasy.StreamPart{
-								Type:         fantasy.StreamPartTypeToolInputStart,
+							if !yield(unillm.StreamPart{
+								Type:         unillm.StreamPartTypeToolInputStart,
 								ID:           toolCallDelta.ID,
 								ToolCallName: toolCallDelta.Function.Name,
 							}) {
@@ -443,23 +443,23 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 
 							exTc := toolCalls[toolCallDelta.Index]
 							if exTc.arguments != "" {
-								if !yield(fantasy.StreamPart{
-									Type:  fantasy.StreamPartTypeToolInputDelta,
+								if !yield(unillm.StreamPart{
+									Type:  unillm.StreamPartTypeToolInputDelta,
 									ID:    exTc.id,
 									Delta: exTc.arguments,
 								}) {
 									return
 								}
 								if xjson.IsValid(toolCalls[toolCallDelta.Index].arguments) {
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeToolInputEnd,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeToolInputEnd,
 										ID:   toolCallDelta.ID,
 									}) {
 										return
 									}
 
-									if !yield(fantasy.StreamPart{
-										Type:          fantasy.StreamPartTypeToolCall,
+									if !yield(unillm.StreamPart{
+										Type:          unillm.StreamPartTypeToolCall,
 										ID:            exTc.id,
 										ToolCallName:  exTc.name,
 										ToolCallInput: exTc.arguments,
@@ -488,10 +488,10 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 				if annotations := parseAnnotationsFromDelta(choice.Delta); len(annotations) > 0 {
 					for _, annotation := range annotations {
 						if annotation.Type == "url_citation" {
-							if !yield(fantasy.StreamPart{
-								Type:       fantasy.StreamPartTypeSource,
+							if !yield(unillm.StreamPart{
+								Type:       unillm.StreamPartTypeSource,
 								ID:         uuid.NewString(),
-								SourceType: fantasy.SourceTypeURL,
+								SourceType: unillm.SourceTypeURL,
 								URL:        annotation.URLCitation.URL,
 								Title:      annotation.URLCitation.Title,
 							}) {
@@ -506,8 +506,8 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 		if err == nil || errors.Is(err, io.EOF) {
 			if isActiveText {
 				isActiveText = false
-				if !yield(fantasy.StreamPart{
-					Type: fantasy.StreamPartTypeTextEnd,
+				if !yield(unillm.StreamPart{
+					Type: unillm.StreamPartTypeTextEnd,
 					ID:   "0",
 				}) {
 					return
@@ -520,10 +520,10 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 
 				for _, annotation := range choice.Message.Annotations {
 					if annotation.Type == "url_citation" {
-						if !yield(fantasy.StreamPart{
-							Type:       fantasy.StreamPartTypeSource,
+						if !yield(unillm.StreamPart{
+							Type:       unillm.StreamPartTypeSource,
 							ID:         acc.ID,
-							SourceType: fantasy.SourceTypeURL,
+							SourceType: unillm.SourceTypeURL,
 							URL:        annotation.URLCitation.URL,
 							Title:      annotation.URLCitation.Title,
 						}) {
@@ -536,19 +536,19 @@ func (o languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.S
 			if len(acc.Choices) > 0 {
 				choice := acc.Choices[0]
 				if len(choice.Message.ToolCalls) > 0 {
-					mappedFinishReason = fantasy.FinishReasonToolCalls
+					mappedFinishReason = unillm.FinishReasonToolCalls
 				}
 			}
-			yield(fantasy.StreamPart{
-				Type:             fantasy.StreamPartTypeFinish,
+			yield(unillm.StreamPart{
+				Type:             unillm.StreamPartTypeFinish,
 				Usage:            usage,
 				FinishReason:     mappedFinishReason,
 				ProviderMetadata: providerMetadata,
 			})
 			return
 		} else { //nolint: revive
-			yield(fantasy.StreamPart{
-				Type:  fantasy.StreamPartTypeError,
+			yield(unillm.StreamPart{
+				Type:  unillm.StreamPartTypeError,
 				Error: toProviderErr(err),
 			})
 			return
@@ -579,10 +579,10 @@ func supportsPriorityProcessing(modelID string) bool {
 		strings.Contains(modelID, "-o3") || strings.Contains(modelID, "o4-mini")
 }
 
-func toOpenAiTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (openAiTools []openai.ChatCompletionToolUnionParam, openAiToolChoice *openai.ChatCompletionToolChoiceOptionUnionParam, warnings []fantasy.CallWarning) {
+func toOpenAiTools(tools []unillm.Tool, toolChoice *unillm.ToolChoice) (openAiTools []openai.ChatCompletionToolUnionParam, openAiToolChoice *openai.ChatCompletionToolChoiceOptionUnionParam, warnings []unillm.CallWarning) {
 	for _, tool := range tools {
-		if tool.GetType() == fantasy.ToolTypeFunction {
-			ft, ok := tool.(fantasy.FunctionTool)
+		if tool.GetType() == unillm.ToolTypeFunction {
+			ft, ok := tool.(unillm.FunctionTool)
 			if !ok {
 				continue
 			}
@@ -600,8 +600,8 @@ func toOpenAiTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (openAi
 			continue
 		}
 
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedTool,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedTool,
 			Tool:    tool,
 			Message: "tool is not supported",
 		})
@@ -611,11 +611,11 @@ func toOpenAiTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (openAi
 	}
 
 	switch *toolChoice {
-	case fantasy.ToolChoiceAuto:
+	case unillm.ToolChoiceAuto:
 		openAiToolChoice = &openai.ChatCompletionToolChoiceOptionUnionParam{
 			OfAuto: param.NewOpt("auto"),
 		}
-	case fantasy.ToolChoiceNone:
+	case unillm.ToolChoiceNone:
 		openAiToolChoice = &openai.ChatCompletionToolChoiceOptionUnionParam{
 			OfAuto: param.NewOpt("none"),
 		}
@@ -665,31 +665,31 @@ func parseAnnotationsFromDelta(delta openai.ChatCompletionChunkChoiceDelta) []op
 	return annotations
 }
 
-// GenerateObject implements fantasy.LanguageModel.
-func (o languageModel) GenerateObject(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+// GenerateObject implements unillm.LanguageModel.
+func (o languageModel) GenerateObject(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	switch o.objectMode {
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.GenerateWithText(ctx, o, call)
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.GenerateWithTool(ctx, o, call)
 	default:
 		return o.generateObjectWithJSONMode(ctx, call)
 	}
 }
 
-// StreamObject implements fantasy.LanguageModel.
-func (o languageModel) StreamObject(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+// StreamObject implements unillm.LanguageModel.
+func (o languageModel) StreamObject(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	switch o.objectMode {
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.StreamWithTool(ctx, o, call)
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.StreamWithText(ctx, o, call)
 	default:
 		return o.streamObjectWithJSONMode(ctx, call)
 	}
 }
 
-func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
 	addAdditionalPropertiesFalse(jsonSchemaMap)
@@ -699,7 +699,7 @@ func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call fant
 		schemaName = "response"
 	}
 
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -732,11 +732,11 @@ func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call fant
 
 	if len(response.Choices) == 0 {
 		usage, _ := o.usageFunc(*response)
-		return nil, &fantasy.NoObjectGeneratedError{
+		return nil, &unillm.NoObjectGeneratedError{
 			RawText:      "",
 			ParseError:   fmt.Errorf("no choices in response"),
 			Usage:        usage,
-			FinishReason: fantasy.FinishReasonUnknown,
+			FinishReason: unillm.FinishReasonUnknown,
 		}
 	}
 
@@ -754,14 +754,14 @@ func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call fant
 	finishReason := o.mapFinishReasonFunc(choice.FinishReason)
 
 	if err != nil {
-		if nogErr, ok := err.(*fantasy.NoObjectGeneratedError); ok {
+		if nogErr, ok := err.(*unillm.NoObjectGeneratedError); ok {
 			nogErr.Usage = usage
 			nogErr.FinishReason = finishReason
 		}
 		return nil, err
 	}
 
-	return &fantasy.ObjectResponse{
+	return &unillm.ObjectResponse{
 		Object:       obj,
 		RawText:      jsonText,
 		Usage:        usage,
@@ -770,7 +770,7 @@ func (o languageModel) generateObjectWithJSONMode(ctx context.Context, call fant
 	}, nil
 }
 
-func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
 	addAdditionalPropertiesFalse(jsonSchemaMap)
@@ -780,7 +780,7 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 		schemaName = "response"
 	}
 
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -812,10 +812,10 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 
 	stream := o.client.Chat.Completions.NewStreaming(ctx, *params)
 
-	return func(yield func(fantasy.ObjectStreamPart) bool) {
+	return func(yield func(unillm.ObjectStreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.ObjectStreamPart{
-				Type:     fantasy.ObjectStreamPartTypeObject,
+			if !yield(unillm.ObjectStreamPart{
+				Type:     unillm.ObjectStreamPartTypeObject,
 				Warnings: warnings,
 			}) {
 				return
@@ -824,9 +824,9 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 
 		var accumulated string
 		var lastParsedObject any
-		var usage fantasy.Usage
-		var finishReason fantasy.FinishReason
-		var providerMetadata fantasy.ProviderMetadata
+		var usage unillm.Usage
+		var finishReason unillm.FinishReason
+		var providerMetadata unillm.ProviderMetadata
 		var streamErr error
 
 		for stream.Next() {
@@ -852,8 +852,8 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 				if state == schema.ParseStateSuccessful || state == schema.ParseStateRepaired {
 					if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 						if !reflect.DeepEqual(obj, lastParsedObject) {
-							if !yield(fantasy.ObjectStreamPart{
-								Type:   fantasy.ObjectStreamPartTypeObject,
+							if !yield(unillm.ObjectStreamPart{
+								Type:   unillm.ObjectStreamPartTypeObject,
 								Object: obj,
 							}) {
 								return
@@ -870,8 +870,8 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 						if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 							schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 							if !reflect.DeepEqual(obj2, lastParsedObject) {
-								if !yield(fantasy.ObjectStreamPart{
-									Type:   fantasy.ObjectStreamPartTypeObject,
+								if !yield(unillm.ObjectStreamPart{
+									Type:   unillm.ObjectStreamPartTypeObject,
 									Object: obj2,
 								}) {
 									return
@@ -887,24 +887,24 @@ func (o languageModel) streamObjectWithJSONMode(ctx context.Context, call fantas
 		err := stream.Err()
 		if err != nil && !errors.Is(err, io.EOF) {
 			streamErr = toProviderErr(err)
-			yield(fantasy.ObjectStreamPart{
-				Type:  fantasy.ObjectStreamPartTypeError,
+			yield(unillm.ObjectStreamPart{
+				Type:  unillm.ObjectStreamPartTypeError,
 				Error: streamErr,
 			})
 			return
 		}
 
 		if lastParsedObject != nil {
-			yield(fantasy.ObjectStreamPart{
-				Type:             fantasy.ObjectStreamPartTypeFinish,
+			yield(unillm.ObjectStreamPart{
+				Type:             unillm.ObjectStreamPartTypeFinish,
 				Usage:            usage,
 				FinishReason:     finishReason,
 				ProviderMetadata: providerMetadata,
 			})
 		} else {
-			yield(fantasy.ObjectStreamPart{
-				Type: fantasy.ObjectStreamPartTypeError,
-				Error: &fantasy.NoObjectGeneratedError{
+			yield(unillm.ObjectStreamPart{
+				Type: unillm.ObjectStreamPartTypeError,
+				Error: &unillm.NoObjectGeneratedError{
 					RawText:      accumulated,
 					ParseError:   fmt.Errorf("no valid object generated in stream"),
 					Usage:        usage,

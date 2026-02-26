@@ -6,13 +6,13 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/getkawai/unillm"
 	"github.com/getkawai/llamalib"
 	"github.com/getkawai/llamalib/llama"
 	"github.com/getkawai/llamalib/message"
 	"github.com/getkawai/llamalib/template"
 	"github.com/getkawai/tools"
+	"github.com/getkawai/unillm"
+	"github.com/google/uuid"
 )
 
 // Default batch size for token processing
@@ -34,19 +34,19 @@ func newLanguageModel(modelID string, provider string, service *llamalib.Service
 	}
 }
 
-// Model implements fantasy.LanguageModel.
+// Model implements unillm.LanguageModel.
 func (l *languageModel) Model() string {
 	return l.modelID
 }
 
-// Provider implements fantasy.LanguageModel.
+// Provider implements unillm.LanguageModel.
 func (l *languageModel) Provider() string {
 	return l.provider
 }
 
-// Generate implements fantasy.LanguageModel.
-func (l *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantasy.Response, error) {
-	// Convert fantasy.Call to prompt string using chat template
+// Generate implements unillm.LanguageModel.
+func (l *languageModel) Generate(ctx context.Context, call unillm.Call) (*unillm.Response, error) {
+	// Convert unillm.Call to prompt string using chat template
 	prompt, err := l.preparePrompt(call)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare prompt: %w", err)
@@ -68,23 +68,23 @@ func (l *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fanta
 	toolCalls := tools.ParseToolCalls(response)
 
 	// Build response content
-	content := make([]fantasy.Content, 0)
+	content := make([]unillm.Content, 0)
 
 	// Clean tool call tags and extract reasoning from response text
 	reasoning := l.extractReasoning(&response)
 	cleanedResponse := l.cleanToolCallTags(response)
 
 	if reasoning != "" {
-		content = append(content, fantasy.ReasoningContent{Text: reasoning})
+		content = append(content, unillm.ReasoningContent{Text: reasoning})
 	}
 
 	if cleanedResponse != "" {
-		content = append(content, fantasy.TextContent{Text: cleanedResponse})
+		content = append(content, unillm.TextContent{Text: cleanedResponse})
 	}
 
 	// Add tool calls as content
 	for _, tc := range toolCalls {
-		content = append(content, fantasy.ToolCallContent{
+		content = append(content, unillm.ToolCallContent{
 			ToolCallID:       tc.ID,
 			ToolName:         tc.Name,
 			Input:            tc.Input,
@@ -92,15 +92,15 @@ func (l *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fanta
 		})
 	}
 
-	finishReason := fantasy.FinishReasonStop
+	finishReason := unillm.FinishReasonStop
 	if len(toolCalls) > 0 {
-		finishReason = fantasy.FinishReasonToolCalls
+		finishReason = unillm.FinishReasonToolCalls
 	}
 
-	return &fantasy.Response{
+	return &unillm.Response{
 		Content:      content,
 		FinishReason: finishReason,
-		Usage: fantasy.Usage{
+		Usage: unillm.Usage{
 			InputTokens:  int64(promptTokens),
 			OutputTokens: int64(completionTokens),
 			TotalTokens:  int64(promptTokens + completionTokens),
@@ -108,8 +108,8 @@ func (l *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fanta
 	}, nil
 }
 
-// Stream implements fantasy.LanguageModel.
-func (l *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.StreamResponse, error) {
+// Stream implements unillm.LanguageModel.
+func (l *languageModel) Stream(ctx context.Context, call unillm.Call) (unillm.StreamResponse, error) {
 	prompt, err := l.preparePrompt(call)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare prompt: %w", err)
@@ -120,7 +120,7 @@ func (l *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 		maxTokens = int32(*call.MaxOutputTokens)
 	}
 
-	return func(yield func(fantasy.StreamPart) bool) {
+	return func(yield func(unillm.StreamPart) bool) {
 		promptTokens := len(prompt) / 4 // Approximate
 
 		processor := newStreamProcessor(yield)
@@ -134,8 +134,8 @@ func (l *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 		})
 
 		if err != nil {
-			yield(fantasy.StreamPart{
-				Type:  fantasy.StreamPartTypeError,
+			yield(unillm.StreamPart{
+				Type:  unillm.StreamPartTypeError,
 				Error: err,
 			})
 			return
@@ -143,15 +143,15 @@ func (l *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 
 		processor.Flush()
 
-		finishReason := fantasy.FinishReasonStop
+		finishReason := unillm.FinishReasonStop
 		if processor.HasToolCalls() {
-			finishReason = fantasy.FinishReasonToolCalls
+			finishReason = unillm.FinishReasonToolCalls
 		}
 
-		yield(fantasy.StreamPart{
-			Type:         fantasy.StreamPartTypeFinish,
+		yield(unillm.StreamPart{
+			Type:         unillm.StreamPartTypeFinish,
 			FinishReason: finishReason,
-			Usage: fantasy.Usage{
+			Usage: unillm.Usage{
 				InputTokens:  int64(promptTokens),
 				OutputTokens: int64(completionTokens),
 				TotalTokens:  int64(promptTokens + completionTokens),
@@ -160,34 +160,34 @@ func (l *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 	}, nil
 }
 
-// GenerateObject implements fantasy.LanguageModel.
-func (l *languageModel) GenerateObject(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+// GenerateObject implements unillm.LanguageModel.
+func (l *languageModel) GenerateObject(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	// For now, use text-based object generation
 	// TODO: Implement proper JSON mode if model supports it
 	return nil, fmt.Errorf("GenerateObject not yet implemented for llama provider")
 }
 
-// StreamObject implements fantasy.LanguageModel.
-func (l *languageModel) StreamObject(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+// StreamObject implements unillm.LanguageModel.
+func (l *languageModel) StreamObject(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	return nil, fmt.Errorf("StreamObject not yet implemented for llama provider")
 }
 
-// preparePrompt converts fantasy.Call to a formatted prompt string
-func (l *languageModel) preparePrompt(call fantasy.Call) (string, error) {
-	// Start with original fantasy messages
+// preparePrompt converts unillm.Call to a formatted prompt string
+func (l *languageModel) preparePrompt(call unillm.Call) (string, error) {
+	// Start with original unillm messages
 	messages := call.Prompt
 
 	// Enhance with tools if available and ToolChoice is not "none"
 	// ToolChoiceNone disables all tools (useful for title/summary generation)
 	shouldEnhanceTools := l.toolRegistry != nil && len(call.Tools) > 0
-	if call.ToolChoice != nil && *call.ToolChoice == fantasy.ToolChoiceNone {
+	if call.ToolChoice != nil && *call.ToolChoice == unillm.ToolChoiceNone {
 		shouldEnhanceTools = false
 	}
 	if shouldEnhanceTools {
 		messages = l.enhanceWithTools(messages, call.Tools)
 	}
 
-	// Convert fantasy.Prompt to template-compatible messages
+	// Convert unillm.Prompt to template-compatible messages
 	templateMessages := l.convertToTemplateMessages(messages)
 
 	// Get chat template
@@ -207,8 +207,8 @@ func (l *languageModel) preparePrompt(call fantasy.Call) (string, error) {
 	return prompt, nil
 }
 
-// convertToTemplateMessages converts fantasy.Prompt to []message.Message for template.Apply
-func (l *languageModel) convertToTemplateMessages(prompt fantasy.Prompt) []message.Message {
+// convertToTemplateMessages converts unillm.Prompt to []message.Message for template.Apply
+func (l *languageModel) convertToTemplateMessages(prompt unillm.Prompt) []message.Message {
 	result := make([]message.Message, 0, len(prompt))
 
 	// Build a map of tool call IDs to tool names for resolving tool responses
@@ -223,10 +223,10 @@ func (l *languageModel) convertToTemplateMessages(prompt fantasy.Prompt) []messa
 
 		for _, part := range msg.Content {
 			switch p := part.(type) {
-			case fantasy.TextPart:
+			case unillm.TextPart:
 				textContent += p.Text
-			case fantasy.ToolCallPart:
-				// Convert fantasy.ToolCallPart to message.ToolCall
+			case unillm.ToolCallPart:
+				// Convert unillm.ToolCallPart to message.ToolCall
 				// Parse the Input JSON string to map[string]string
 				args := map[string]string{
 					"json": p.Input,
@@ -240,9 +240,9 @@ func (l *languageModel) convertToTemplateMessages(prompt fantasy.Prompt) []messa
 				})
 				// Store mapping for later tool response resolution
 				toolCallIDToName[p.ToolCallID] = p.ToolName
-			case fantasy.ToolResultPart:
+			case unillm.ToolResultPart:
 				// Extract tool result information
-				if output, ok := p.Output.(fantasy.ToolResultOutputContentText); ok {
+				if output, ok := p.Output.(unillm.ToolResultOutputContentText); ok {
 					toolResultContent = output.Text
 				}
 				// Look up the tool name from the tool call ID
@@ -266,7 +266,7 @@ func (l *languageModel) convertToTemplateMessages(prompt fantasy.Prompt) []messa
 				Role:      string(msg.Role),
 				ToolCalls: toolCalls,
 			})
-		} else if msg.Role == fantasy.MessageRoleTool {
+		} else if msg.Role == unillm.MessageRoleTool {
 			// Tool response message
 			result = append(result, message.ToolResponse{
 				Role:    string(msg.Role),
@@ -286,7 +286,7 @@ func (l *languageModel) convertToTemplateMessages(prompt fantasy.Prompt) []messa
 }
 
 // enhanceWithTools adds tool definitions to the prompt
-func (l *languageModel) enhanceWithTools(messages fantasy.Prompt, callTools []fantasy.Tool) fantasy.Prompt {
+func (l *languageModel) enhanceWithTools(messages unillm.Prompt, callTools []unillm.Tool) unillm.Prompt {
 	if len(callTools) == 0 {
 		return messages
 	}
@@ -294,7 +294,7 @@ func (l *languageModel) enhanceWithTools(messages fantasy.Prompt, callTools []fa
 	// Build tool definitions JSON
 	var toolDefs []map[string]any
 	for _, tool := range callTools {
-		if ft, ok := tool.(fantasy.FunctionTool); ok {
+		if ft, ok := tool.(unillm.FunctionTool); ok {
 			toolDefs = append(toolDefs, map[string]any{
 				"type": "function",
 				"function": map[string]any{
@@ -314,26 +314,26 @@ func (l *languageModel) enhanceWithTools(messages fantasy.Prompt, callTools []fa
 	toolsJSON := tools.FormatToolsJSON(toolDefs)
 
 	// Make a copy to avoid modifying original
-	result := make(fantasy.Prompt, len(messages))
+	result := make(unillm.Prompt, len(messages))
 	copy(result, messages)
 
 	// Find or create system message
-	if len(result) > 0 && result[0].Role == fantasy.MessageRoleSystem {
+	if len(result) > 0 && result[0].Role == unillm.MessageRoleSystem {
 		// Get existing system text
 		var existingText string
 		for _, part := range result[0].Content {
-			if tp, ok := part.(fantasy.TextPart); ok {
+			if tp, ok := part.(unillm.TextPart); ok {
 				existingText = tp.Text
 				break
 			}
 		}
 		// Enhance existing system message
 		enhancedContent := tools.BuildSystemPrompt(existingText, toolsJSON)
-		result[0] = fantasy.NewSystemMessage(enhancedContent)
+		result[0] = unillm.NewSystemMessage(enhancedContent)
 	} else {
 		// Prepend new system message with tools
 		systemContent := tools.BuildSystemPrompt("You are a helpful AI assistant.", toolsJSON)
-		result = append(fantasy.Prompt{fantasy.NewSystemMessage(systemContent)}, result...)
+		result = append(unillm.Prompt{unillm.NewSystemMessage(systemContent)}, result...)
 	}
 
 	return result

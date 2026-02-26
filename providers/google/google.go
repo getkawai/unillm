@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/auth"
-	"github.com/google/uuid"
 	"github.com/getkawai/unillm"
+	"github.com/google/uuid"
 	"google.golang.org/genai"
 )
 
@@ -34,14 +34,14 @@ type options struct {
 	location       string
 	skipAuth       bool
 	toolCallIDFunc ToolCallIDFunc
-	objectMode     fantasy.ObjectMode
+	objectMode     unillm.ObjectMode
 }
 
 // Option defines a function that configures Google provider options.
 type Option = func(*options)
 
 // New creates a new Google provider with the given options.
-func New(opts ...Option) (fantasy.Provider, error) {
+func New(opts ...Option) (unillm.Provider, error) {
 	options := options{
 		headers: map[string]string{},
 		toolCallIDFunc: func() string {
@@ -123,19 +123,19 @@ func WithToolCallIDFunc(f ToolCallIDFunc) Option {
 }
 
 // WithObjectMode sets the object generation mode for the Google provider.
-func WithObjectMode(om fantasy.ObjectMode) Option {
+func WithObjectMode(om unillm.ObjectMode) Option {
 	return func(o *options) {
 		o.objectMode = om
 	}
 }
 
-// Name implements fantasy.Provider.
+// Name implements unillm.Provider.
 func (*provider) Name() string {
 	return Name
 }
 
-// LanguageModel implements fantasy.Provider.
-func (a *provider) LanguageModel(ctx context.Context, modelID string) (fantasy.LanguageModel, error) {
+// LanguageModel implements unillm.Provider.
+func (a *provider) LanguageModel(ctx context.Context, modelID string) (unillm.LanguageModel, error) {
 	// Validate Vertex AI configuration
 	if a.options.backend == genai.BackendVertexAI {
 		if a.options.project == "" || a.options.location == "" {
@@ -175,7 +175,7 @@ func (a *provider) LanguageModel(ctx context.Context, modelID string) (fantasy.L
 
 	objectMode := a.options.objectMode
 	if objectMode == "" {
-		objectMode = fantasy.ObjectModeAuto
+		objectMode = unillm.ObjectModeAuto
 	}
 
 	return &languageModel{

@@ -13,24 +13,24 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should add reasoning_content field to assistant messages", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "What is 2+2?"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "What is 2+2?"},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.ReasoningPart{Text: "Let me think... 2+2 equals 4."},
-					fantasy.TextPart{Text: "The answer is 4."},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.ReasoningPart{Text: "Let me think... 2+2 equals 4."},
+					unillm.TextPart{Text: "The answer is 4."},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "What about 3+3?"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "What about 3+3?"},
 				},
 			},
 		}
@@ -64,17 +64,17 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should handle assistant messages with only reasoning content", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.ReasoningPart{Text: "Internal reasoning only..."},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.ReasoningPart{Text: "Internal reasoning only..."},
 				},
 			},
 		}
@@ -96,17 +96,17 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should not add reasoning_content to messages without reasoning", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hi there!"},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hi there!"},
 				},
 			},
 		}
@@ -128,17 +128,17 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should preserve system and user messages unchanged", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleSystem,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "You are helpful."},
+				Role: unillm.MessageRoleSystem,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "You are helpful."},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 		}
@@ -162,19 +162,19 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should use last assistant TextPart only", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "First part. "},
-					fantasy.TextPart{Text: "Second part. "},
-					fantasy.TextPart{Text: "Third part."},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "First part. "},
+					unillm.TextPart{Text: "Second part. "},
+					unillm.TextPart{Text: "Third part."},
 				},
 			},
 		}
@@ -193,26 +193,26 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should include user messages with only unsupported attachments", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/x-unsupported",
 						Data:      []byte("unsupported data"),
 					},
 				},
 			},
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "After unsupported"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "After unsupported"},
 				},
 			},
 		}
@@ -242,12 +242,12 @@ func TestToPromptFunc_ReasoningContent(t *testing.T) {
 	t.Run("should detect PDF file IDs using strings.HasPrefix", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Check this PDF"},
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Check this PDF"},
+					unillm.FilePart{
 						MediaType: "application/pdf",
 						Data:      []byte("file-abc123xyz"),
 						Filename:  "test.pdf",

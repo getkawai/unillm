@@ -1,4 +1,4 @@
-// Package openai provides an implementation of the fantasy AI SDK for OpenAI's language models.
+// Package openai provides an implementation of the unillm AI SDK for OpenAI's language models.
 package openai
 
 import (
@@ -16,14 +16,14 @@ const (
 
 // Register OpenAI Responses API-specific types with the global registry.
 func init() {
-	fantasy.RegisterProviderType(TypeResponsesProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeResponsesProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ResponsesProviderOptions
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
 		return &v, nil
 	})
-	fantasy.RegisterProviderType(TypeResponsesReasoningMetadata, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeResponsesReasoningMetadata, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ResponsesReasoningMetadata
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
@@ -45,14 +45,14 @@ func (*ResponsesReasoningMetadata) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ResponsesReasoningMetadata.
 func (m ResponsesReasoningMetadata) MarshalJSON() ([]byte, error) {
 	type plain ResponsesReasoningMetadata
-	return fantasy.MarshalProviderType(TypeResponsesReasoningMetadata, plain(m))
+	return unillm.MarshalProviderType(TypeResponsesReasoningMetadata, plain(m))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ResponsesReasoningMetadata.
 func (m *ResponsesReasoningMetadata) UnmarshalJSON(data []byte) error {
 	type plain ResponsesReasoningMetadata
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*m = ResponsesReasoningMetadata(p)
@@ -119,14 +119,14 @@ func (*ResponsesProviderOptions) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ResponsesProviderOptions.
 func (o ResponsesProviderOptions) MarshalJSON() ([]byte, error) {
 	type plain ResponsesProviderOptions
-	return fantasy.MarshalProviderType(TypeResponsesProviderOptions, plain(o))
+	return unillm.MarshalProviderType(TypeResponsesProviderOptions, plain(o))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ResponsesProviderOptions.
 func (o *ResponsesProviderOptions) UnmarshalJSON(data []byte) error {
 	type plain ResponsesProviderOptions
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*o = ResponsesProviderOptions(p)
@@ -191,8 +191,8 @@ var responsesModelIDs = append([]string{
 }, responsesReasoningModelIDs...)
 
 // NewResponsesProviderOptions creates new provider options for OpenAI Responses API.
-func NewResponsesProviderOptions(opts *ResponsesProviderOptions) fantasy.ProviderOptions {
-	return fantasy.ProviderOptions{
+func NewResponsesProviderOptions(opts *ResponsesProviderOptions) unillm.ProviderOptions {
+	return unillm.ProviderOptions{
 		Name: opts,
 	}
 }
@@ -200,7 +200,7 @@ func NewResponsesProviderOptions(opts *ResponsesProviderOptions) fantasy.Provide
 // ParseResponsesOptions parses provider options from a map for OpenAI Responses API.
 func ParseResponsesOptions(data map[string]any) (*ResponsesProviderOptions, error) {
 	var options ResponsesProviderOptions
-	if err := fantasy.ParseOptions(data, &options); err != nil {
+	if err := unillm.ParseOptions(data, &options); err != nil {
 		return nil, err
 	}
 	return &options, nil

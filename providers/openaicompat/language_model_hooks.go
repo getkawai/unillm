@@ -16,12 +16,12 @@ import (
 const reasoningStartedCtx = "reasoning_started"
 
 // PrepareCallFunc prepares the call for the language model.
-func PrepareCallFunc(_ fantasy.LanguageModel, params *openaisdk.ChatCompletionNewParams, call fantasy.Call) ([]fantasy.CallWarning, error) {
+func PrepareCallFunc(_ unillm.LanguageModel, params *openaisdk.ChatCompletionNewParams, call unillm.Call) ([]unillm.CallWarning, error) {
 	providerOptions := &ProviderOptions{}
 	if v, ok := call.ProviderOptions[Name]; ok {
 		providerOptions, ok = v.(*ProviderOptions)
 		if !ok {
-			return nil, &fantasy.Error{Title: "invalid argument", Message: "openai-compat provider options should be *openaicompat.ProviderOptions"}
+			return nil, &unillm.Error{Title: "invalid argument", Message: "openai-compat provider options should be *openaicompat.ProviderOptions"}
 		}
 	}
 
@@ -47,15 +47,15 @@ func PrepareCallFunc(_ fantasy.LanguageModel, params *openaisdk.ChatCompletionNe
 }
 
 // ExtraContentFunc adds extra content to the response.
-func ExtraContentFunc(choice openaisdk.ChatCompletionChoice) []fantasy.Content {
-	var content []fantasy.Content
+func ExtraContentFunc(choice openaisdk.ChatCompletionChoice) []unillm.Content {
+	var content []unillm.Content
 	reasoningData := ReasoningData{}
 	err := json.Unmarshal([]byte(choice.Message.RawJSON()), &reasoningData)
 	if err != nil {
 		return content
 	}
 	if reasoningData.ReasoningContent != "" {
-		content = append(content, fantasy.ReasoningContent{
+		content = append(content, unillm.ReasoningContent{
 			Text: reasoningData.ReasoningContent,
 		})
 	}
@@ -75,7 +75,7 @@ func extractReasoningContext(ctx map[string]any) bool {
 }
 
 // StreamExtraFunc handles extra functionality for streaming responses.
-func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.StreamPart) bool, ctx map[string]any) (map[string]any, bool) {
+func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(unillm.StreamPart) bool, ctx map[string]any) (map[string]any, bool) {
 	if len(chunk.Choices) == 0 {
 		return ctx, true
 	}
@@ -86,17 +86,17 @@ func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.Str
 		reasoningData := ReasoningData{}
 		err := json.Unmarshal([]byte(choice.Delta.RawJSON()), &reasoningData)
 		if err != nil {
-			yield(fantasy.StreamPart{
-				Type:  fantasy.StreamPartTypeError,
-				Error: &fantasy.Error{Title: "stream error", Message: "error unmarshalling delta", Cause: err},
+			yield(unillm.StreamPart{
+				Type:  unillm.StreamPartTypeError,
+				Error: &unillm.Error{Title: "stream error", Message: "error unmarshalling delta", Cause: err},
 			})
 			return ctx, false
 		}
 
 		emitEvent := func(reasoningContent string) bool {
 			if !reasoningStarted {
-				shouldContinue := yield(fantasy.StreamPart{
-					Type: fantasy.StreamPartTypeReasoningStart,
+				shouldContinue := yield(unillm.StreamPart{
+					Type: unillm.StreamPartTypeReasoningStart,
 					ID:   fmt.Sprintf("%d", inx),
 				})
 				if !shouldContinue {
@@ -104,8 +104,8 @@ func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.Str
 				}
 			}
 
-			return yield(fantasy.StreamPart{
-				Type:  fantasy.StreamPartTypeReasoningDelta,
+			return yield(unillm.StreamPart{
+				Type:  unillm.StreamPartTypeReasoningDelta,
 				ID:    fmt.Sprintf("%d", inx),
 				Delta: reasoningContent,
 			})
@@ -118,8 +118,8 @@ func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.Str
 		}
 		if reasoningStarted && (choice.Delta.Content != "" || len(choice.Delta.ToolCalls) > 0) {
 			ctx[reasoningStartedCtx] = false
-			return ctx, yield(fantasy.StreamPart{
-				Type: fantasy.StreamPartTypeReasoningEnd,
+			return ctx, yield(unillm.StreamPart{
+				Type: unillm.StreamPartTypeReasoningEnd,
 				ID:   fmt.Sprintf("%d", inx),
 			})
 		}
@@ -127,28 +127,28 @@ func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.Str
 	return ctx, true
 }
 
-// ToPromptFunc converts a fantasy prompt to OpenAI format with reasoning support.
-// It handles fantasy.ContentTypeReasoning in assistant messages by adding the
+// ToPromptFunc converts a unillm prompt to OpenAI format with reasoning support.
+// It handles unillm.ContentTypeReasoning in assistant messages by adding the
 // reasoning_content field to the message JSON.
-func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletionMessageParamUnion, []fantasy.CallWarning) {
+func ToPromptFunc(prompt unillm.Prompt, _, _ string) ([]openaisdk.ChatCompletionMessageParamUnion, []unillm.CallWarning) {
 	var messages []openaisdk.ChatCompletionMessageParamUnion
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 	for _, msg := range prompt {
 		switch msg.Role {
-		case fantasy.MessageRoleSystem:
+		case unillm.MessageRoleSystem:
 			var systemPromptParts []string
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeText {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeText {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt can only have text content",
 					})
 					continue
 				}
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt text part does not have the right type",
 					})
 					continue
@@ -159,20 +159,20 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 				}
 			}
 			if len(systemPromptParts) == 0 {
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeOther,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeOther,
 					Message: "system prompt has no text parts",
 				})
 				continue
 			}
 			messages = append(messages, openaisdk.SystemMessage(strings.Join(systemPromptParts, "\n")))
-		case fantasy.MessageRoleUser:
+		case unillm.MessageRoleUser:
 			// simple user message just text content
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "user message text part does not have the right type",
 					})
 					continue
@@ -184,11 +184,11 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 			var content []openaisdk.ChatCompletionContentPartUnionParam
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message text part does not have the right type",
 						})
 						continue
@@ -198,11 +198,11 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 							Text: textPart.Text,
 						},
 					})
-				case fantasy.ContentTypeFile:
-					filePart, ok := fantasy.AsContentType[fantasy.FilePart](c)
+				case unillm.ContentTypeFile:
+					filePart, ok := unillm.AsContentType[unillm.FilePart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message file part does not have the right type",
 						})
 						continue
@@ -280,21 +280,21 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 						}
 
 					default:
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: fmt.Sprintf("file part media type %s not supported", filePart.MediaType),
 						})
 					}
 				}
 			}
 			messages = append(messages, openaisdk.UserMessage(content))
-		case fantasy.MessageRoleAssistant:
+		case unillm.MessageRoleAssistant:
 			// simple assistant message just text content
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "assistant message text part does not have the right type",
 					})
 					continue
@@ -308,11 +308,11 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 			var reasoningText string
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message text part does not have the right type",
 						})
 						continue
@@ -320,21 +320,21 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 					assistantMsg.Content = openaisdk.ChatCompletionAssistantMessageParamContentUnion{
 						OfString: param.NewOpt(textPart.Text),
 					}
-				case fantasy.ContentTypeReasoning:
-					reasoningPart, ok := fantasy.AsContentType[fantasy.ReasoningPart](c)
+				case unillm.ContentTypeReasoning:
+					reasoningPart, ok := unillm.AsContentType[unillm.ReasoningPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message reasoning part does not have the right type",
 						})
 						continue
 					}
 					reasoningText = reasoningPart.Text
-				case fantasy.ContentTypeToolCall:
-					toolCallPart, ok := fantasy.AsContentType[fantasy.ToolCallPart](c)
+				case unillm.ContentTypeToolCall:
+					toolCallPart, ok := unillm.AsContentType[unillm.ToolCallPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message tool part does not have the right type",
 						})
 						continue
@@ -361,41 +361,41 @@ func ToPromptFunc(prompt fantasy.Prompt, _, _ string) ([]openaisdk.ChatCompletio
 			messages = append(messages, openaisdk.ChatCompletionMessageParamUnion{
 				OfAssistant: &assistantMsg,
 			})
-		case fantasy.MessageRoleTool:
+		case unillm.MessageRoleTool:
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeToolResult {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeToolResult {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message can only have tool result content",
 					})
 					continue
 				}
 
-				toolResultPart, ok := fantasy.AsContentType[fantasy.ToolResultPart](c)
+				toolResultPart, ok := unillm.AsContentType[unillm.ToolResultPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message result part does not have the right type",
 					})
 					continue
 				}
 
 				switch toolResultPart.Output.GetType() {
-				case fantasy.ToolResultContentTypeText:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](toolResultPart.Output)
+				case unillm.ToolResultContentTypeText:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentText](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue
 					}
 					messages = append(messages, openaisdk.ToolMessage(output.Text, toolResultPart.ToolCallID))
-				case fantasy.ToolResultContentTypeError:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](toolResultPart.Output)
+				case unillm.ToolResultContentTypeError:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentError](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue

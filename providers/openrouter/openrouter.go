@@ -1,4 +1,4 @@
-// Package openrouter provides an implementation of the fantasy AI SDK for OpenRouter's language models.
+// Package openrouter provides an implementation of the unillm AI SDK for OpenRouter's language models.
 package openrouter
 
 import (
@@ -13,13 +13,13 @@ import (
 type options struct {
 	openaiOptions        []openai.Option
 	languageModelOptions []openai.LanguageModelOption
-	objectMode           fantasy.ObjectMode
+	objectMode           unillm.ObjectMode
 	selectionCriteria    ModelSelectionCriteria
 }
 
 // provider wraps openai provider to add model selection
 type provider struct {
-	inner    fantasy.Provider
+	inner    unillm.Provider
 	criteria ModelSelectionCriteria
 }
 
@@ -34,7 +34,7 @@ const (
 type Option = func(*options)
 
 // New creates a new OpenRouter provider with the given options.
-func New(opts ...Option) (fantasy.Provider, error) {
+func New(opts ...Option) (unillm.Provider, error) {
 	providerOptions := options{
 		openaiOptions: []openai.Option{
 			openai.WithName(Name),
@@ -48,7 +48,7 @@ func New(opts ...Option) (fantasy.Provider, error) {
 			openai.WithLanguageModelExtraContentFunc(languageModelExtraContent),
 			openai.WithLanguageModelToPromptFunc(languageModelToPrompt),
 		},
-		objectMode: fantasy.ObjectModeTool, // Default to tool mode for openrouter
+		objectMode: unillm.ObjectModeTool, // Default to tool mode for openrouter
 	}
 	for _, o := range opts {
 		o(&providerOptions)
@@ -57,8 +57,8 @@ func New(opts ...Option) (fantasy.Provider, error) {
 	// Handle object mode: convert unsupported modes to tool
 	// OpenRouter doesn't support native JSON mode, so we use tool or text
 	objectMode := providerOptions.objectMode
-	if objectMode == fantasy.ObjectModeAuto || objectMode == fantasy.ObjectModeJSON {
-		objectMode = fantasy.ObjectModeTool
+	if objectMode == unillm.ObjectModeAuto || objectMode == unillm.ObjectModeJSON {
+		objectMode = unillm.ObjectModeTool
 	}
 
 	providerOptions.openaiOptions = append(
@@ -78,14 +78,14 @@ func New(opts ...Option) (fantasy.Provider, error) {
 	}, nil
 }
 
-// Name implements fantasy.Provider.
+// Name implements unillm.Provider.
 func (p *provider) Name() string {
 	return Name
 }
 
-// LanguageModel implements fantasy.Provider with auto model selection.
+// LanguageModel implements unillm.Provider with auto model selection.
 // If modelID is empty, selects the best free model based on criteria.
-func (p *provider) LanguageModel(ctx context.Context, modelID string) (fantasy.LanguageModel, error) {
+func (p *provider) LanguageModel(ctx context.Context, modelID string) (unillm.LanguageModel, error) {
 	if modelID == "" {
 		catalog := GetCatalog()
 		if selected := catalog.SelectFreeModel(p.criteria); selected != nil {
@@ -134,7 +134,7 @@ func WithHTTPClient(client option.HTTPClient) Option {
 // Supported modes: ObjectModeTool, ObjectModeText.
 // ObjectModeAuto and ObjectModeJSON are automatically converted to ObjectModeTool
 // since OpenRouter doesn't support native JSON mode.
-func WithObjectMode(om fantasy.ObjectMode) Option {
+func WithObjectMode(om unillm.ObjectMode) Option {
 	return func(o *options) {
 		o.objectMode = om
 	}

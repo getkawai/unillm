@@ -204,12 +204,12 @@ func TestMapFinishReason(t *testing.T) {
 	tests := []struct {
 		name   string
 		reason string
-		want   fantasy.FinishReason
+		want   unillm.FinishReason
 	}{
-		{"stop", "STOP", fantasy.FinishReasonStop},
-		{"max tokens", "MAX_TOKENS", fantasy.FinishReasonLength},
-		{"safety", "SAFETY", fantasy.FinishReasonContentFilter},
-		{"other", "OTHER", fantasy.FinishReasonOther},
+		{"stop", "STOP", unillm.FinishReasonStop},
+		{"max tokens", "MAX_TOKENS", unillm.FinishReasonLength},
+		{"safety", "SAFETY", unillm.FinishReasonContentFilter},
+		{"other", "OTHER", unillm.FinishReasonOther},
 	}
 
 	for _, tt := range tests {
@@ -223,8 +223,8 @@ func TestMapFinishReason(t *testing.T) {
 func TestProviderOptions(t *testing.T) {
 	opts := &ProviderOptions{
 		ThinkingConfig: &ThinkingConfig{
-			IncludeThoughts: fantasy.Opt(true),
-			ThinkingBudget:  fantasy.Opt(int64(1024)),
+			IncludeThoughts: unillm.Opt(true),
+			ThinkingBudget:  unillm.Opt(int64(1024)),
 		},
 		CachedContent: "cachedContents/test",
 		SafetySettings: []SafetySetting{

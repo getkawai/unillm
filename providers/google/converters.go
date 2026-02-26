@@ -9,16 +9,16 @@ import (
 	"google.golang.org/genai"
 )
 
-// toGooglePrompt converts a fantasy.Prompt to Google's Content format.
-func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []fantasy.CallWarning) { //nolint: unparam
+// toGooglePrompt converts a unillm.Prompt to Google's Content format.
+func toGooglePrompt(prompt unillm.Prompt) (*genai.Content, []*genai.Content, []unillm.CallWarning) { //nolint: unparam
 	var systemInstructions *genai.Content
 	var content []*genai.Content
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 
 	finishedSystemBlock := false
 	for _, msg := range prompt {
 		switch msg.Role {
-		case fantasy.MessageRoleSystem:
+		case unillm.MessageRoleSystem:
 			if finishedSystemBlock {
 				// skip multiple system messages that are separated by user/assistant messages
 				// TODO: see if we need to send error here?
@@ -28,7 +28,7 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 
 			var systemMessages []string
 			for _, part := range msg.Content {
-				text, ok := fantasy.AsMessagePart[fantasy.TextPart](part)
+				text, ok := unillm.AsMessagePart[unillm.TextPart](part)
 				if !ok || text.Text == "" {
 					continue
 				}
@@ -43,20 +43,20 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 					},
 				}
 			}
-		case fantasy.MessageRoleUser:
+		case unillm.MessageRoleUser:
 			var parts []*genai.Part
 			for _, part := range msg.Content {
 				switch part.GetType() {
-				case fantasy.ContentTypeText:
-					text, ok := fantasy.AsMessagePart[fantasy.TextPart](part)
+				case unillm.ContentTypeText:
+					text, ok := unillm.AsMessagePart[unillm.TextPart](part)
 					if !ok || text.Text == "" {
 						continue
 					}
 					parts = append(parts, &genai.Part{
 						Text: text.Text,
 					})
-				case fantasy.ContentTypeFile:
-					file, ok := fantasy.AsMessagePart[fantasy.FilePart](part)
+				case unillm.ContentTypeFile:
+					file, ok := unillm.AsMessagePart[unillm.FilePart](part)
 					if !ok {
 						continue
 					}
@@ -74,13 +74,13 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 					Parts: parts,
 				})
 			}
-		case fantasy.MessageRoleAssistant:
+		case unillm.MessageRoleAssistant:
 			var parts []*genai.Part
 			var currentReasoningMetadata *ReasoningMetadata
 			for _, part := range msg.Content {
 				switch part.GetType() {
-				case fantasy.ContentTypeReasoning:
-					reasoning, ok := fantasy.AsMessagePart[fantasy.ReasoningPart](part)
+				case unillm.ContentTypeReasoning:
+					reasoning, ok := unillm.AsMessagePart[unillm.ReasoningPart](part)
 					if !ok {
 						continue
 					}
@@ -94,8 +94,8 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 						continue
 					}
 					currentReasoningMetadata = reasoningMetadata
-				case fantasy.ContentTypeText:
-					text, ok := fantasy.AsMessagePart[fantasy.TextPart](part)
+				case unillm.ContentTypeText:
+					text, ok := unillm.AsMessagePart[unillm.TextPart](part)
 					if !ok || text.Text == "" {
 						continue
 					}
@@ -107,8 +107,8 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 						currentReasoningMetadata = nil
 					}
 					parts = append(parts, geminiPart)
-				case fantasy.ContentTypeToolCall:
-					toolCall, ok := fantasy.AsMessagePart[fantasy.ToolCallPart](part)
+				case unillm.ContentTypeToolCall:
+					toolCall, ok := unillm.AsMessagePart[unillm.ToolCallPart](part)
 					if !ok {
 						continue
 					}
@@ -138,20 +138,20 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 					Parts: parts,
 				})
 			}
-		case fantasy.MessageRoleTool:
+		case unillm.MessageRoleTool:
 			var parts []*genai.Part
 			for _, part := range msg.Content {
 				switch part.GetType() {
-				case fantasy.ContentTypeToolResult:
-					result, ok := fantasy.AsMessagePart[fantasy.ToolResultPart](part)
+				case unillm.ContentTypeToolResult:
+					result, ok := unillm.AsMessagePart[unillm.ToolResultPart](part)
 					if !ok {
 						continue
 					}
-					var toolCall fantasy.ToolCallPart
+					var toolCall unillm.ToolCallPart
 					for _, m := range prompt {
-						if m.Role == fantasy.MessageRoleAssistant {
+						if m.Role == unillm.MessageRoleAssistant {
 							for _, content := range m.Content {
-								tc, ok := fantasy.AsMessagePart[fantasy.ToolCallPart](content)
+								tc, ok := unillm.AsMessagePart[unillm.ToolCallPart](content)
 								if !ok {
 									continue
 								}
@@ -163,8 +163,8 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 						}
 					}
 					switch result.Output.GetType() {
-					case fantasy.ToolResultContentTypeText:
-						content, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](result.Output)
+					case unillm.ToolResultContentTypeText:
+						content, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentText](result.Output)
 						if !ok {
 							continue
 						}
@@ -177,8 +177,8 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 							},
 						})
 
-					case fantasy.ToolResultContentTypeError:
-						content, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](result.Output)
+					case unillm.ToolResultContentTypeError:
+						content, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentError](result.Output)
 						if !ok {
 							continue
 						}
@@ -201,8 +201,8 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 			}
 		default:
 			// Skip unsupported message roles instead of panicking
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeOther,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeOther,
 				Message: fmt.Sprintf("unsupported message role '%s' - skipping", msg.Role),
 			})
 		}
@@ -210,11 +210,11 @@ func toGooglePrompt(prompt fantasy.Prompt) (*genai.Content, []*genai.Content, []
 	return systemInstructions, content, warnings
 }
 
-// toGoogleTools converts fantasy.Tool to Google's FunctionDeclaration format.
-func toGoogleTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (googleTools []*genai.FunctionDeclaration, googleToolChoice *genai.ToolConfig, warnings []fantasy.CallWarning) {
+// toGoogleTools converts unillm.Tool to Google's FunctionDeclaration format.
+func toGoogleTools(tools []unillm.Tool, toolChoice *unillm.ToolChoice) (googleTools []*genai.FunctionDeclaration, googleToolChoice *genai.ToolConfig, warnings []unillm.CallWarning) {
 	for _, tool := range tools {
-		if tool.GetType() == fantasy.ToolTypeFunction {
-			ft, ok := tool.(fantasy.FunctionTool)
+		if tool.GetType() == unillm.ToolTypeFunction {
+			ft, ok := tool.(unillm.FunctionTool)
 			if !ok {
 				continue
 			}
@@ -242,8 +242,8 @@ func toGoogleTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (google
 			continue
 		}
 		// TODO: handle provider tool calls
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedTool,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedTool,
 			Tool:    tool,
 			Message: "tool is not supported",
 		})
@@ -252,19 +252,19 @@ func toGoogleTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice) (google
 		return googleTools, googleToolChoice, warnings
 	}
 	switch *toolChoice {
-	case fantasy.ToolChoiceAuto:
+	case unillm.ToolChoiceAuto:
 		googleToolChoice = &genai.ToolConfig{
 			FunctionCallingConfig: &genai.FunctionCallingConfig{
 				Mode: genai.FunctionCallingConfigModeAuto,
 			},
 		}
-	case fantasy.ToolChoiceRequired:
+	case unillm.ToolChoiceRequired:
 		googleToolChoice = &genai.ToolConfig{
 			FunctionCallingConfig: &genai.FunctionCallingConfig{
 				Mode: genai.FunctionCallingConfigModeAny,
 			},
 		}
-	case fantasy.ToolChoiceNone:
+	case unillm.ToolChoiceNone:
 		googleToolChoice = &genai.ToolConfig{
 			FunctionCallingConfig: &genai.FunctionCallingConfig{
 				Mode: genai.FunctionCallingConfigModeNone,
@@ -361,33 +361,33 @@ func mapJSONTypeToGoogle(jsonType string) genai.Type {
 	}
 }
 
-// mapFinishReason maps Google's FinishReason to fantasy.FinishReason.
-func mapFinishReason(reason genai.FinishReason) fantasy.FinishReason {
+// mapFinishReason maps Google's FinishReason to unillm.FinishReason.
+func mapFinishReason(reason genai.FinishReason) unillm.FinishReason {
 	switch reason {
 	case genai.FinishReasonStop:
-		return fantasy.FinishReasonStop
+		return unillm.FinishReasonStop
 	case genai.FinishReasonMaxTokens:
-		return fantasy.FinishReasonLength
+		return unillm.FinishReasonLength
 	case genai.FinishReasonSafety,
 		genai.FinishReasonBlocklist,
 		genai.FinishReasonProhibitedContent,
 		genai.FinishReasonSPII,
 		genai.FinishReasonImageSafety:
-		return fantasy.FinishReasonContentFilter
+		return unillm.FinishReasonContentFilter
 	case genai.FinishReasonRecitation,
 		genai.FinishReasonLanguage,
 		genai.FinishReasonMalformedFunctionCall:
-		return fantasy.FinishReasonError
+		return unillm.FinishReasonError
 	case genai.FinishReasonOther:
-		return fantasy.FinishReasonOther
+		return unillm.FinishReasonOther
 	default:
-		return fantasy.FinishReasonUnknown
+		return unillm.FinishReasonUnknown
 	}
 }
 
-// mapUsage maps Google's usage metadata to fantasy.Usage.
-func mapUsage(usage *genai.GenerateContentResponseUsageMetadata) fantasy.Usage {
-	return fantasy.Usage{
+// mapUsage maps Google's usage metadata to unillm.Usage.
+func mapUsage(usage *genai.GenerateContentResponseUsageMetadata) unillm.Usage {
+	return unillm.Usage{
 		InputTokens:         int64(usage.PromptTokenCount),
 		OutputTokens:        int64(usage.CandidatesTokenCount),
 		TotalTokens:         int64(usage.TotalTokenCount),
@@ -398,7 +398,7 @@ func mapUsage(usage *genai.GenerateContentResponseUsageMetadata) fantasy.Usage {
 }
 
 // GetReasoningMetadata extracts reasoning metadata from provider options for google models.
-func GetReasoningMetadata(providerOptions fantasy.ProviderOptions) *ReasoningMetadata {
+func GetReasoningMetadata(providerOptions unillm.ProviderOptions) *ReasoningMetadata {
 	if googleOptions, ok := providerOptions[Name]; ok {
 		if reasoning, ok := googleOptions.(*ReasoningMetadata); ok {
 			return reasoning

@@ -14,8 +14,8 @@ import (
 func toProviderErr(err error) error {
 	var apiErr *openai.Error
 	if errors.As(err, &apiErr) {
-		return &fantasy.ProviderError{
-			Title:           cmp.Or(fantasy.ErrorTitleForStatusCode(apiErr.StatusCode), "provider request failed"),
+		return &unillm.ProviderError{
+			Title:           cmp.Or(unillm.ErrorTitleForStatusCode(apiErr.StatusCode), "provider request failed"),
 			Message:         toProviderErrMessage(apiErr),
 			Cause:           apiErr,
 			URL:             apiErr.Request.URL.String(),

@@ -1,4 +1,4 @@
-// Package google provides an implementation of the fantasy AI SDK for Google's language models.
+// Package google provides an implementation of the unillm AI SDK for Google's language models.
 package google
 
 import (
@@ -15,14 +15,14 @@ const (
 
 // Register Google provider-specific types with the global registry.
 func init() {
-	fantasy.RegisterProviderType(TypeProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderOptions
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
 		return &v, nil
 	})
-	fantasy.RegisterProviderType(TypeReasoningMetadata, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeReasoningMetadata, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ReasoningMetadata
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
@@ -49,14 +49,14 @@ func (m *ReasoningMetadata) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ReasoningMetadata.
 func (m ReasoningMetadata) MarshalJSON() ([]byte, error) {
 	type plain ReasoningMetadata
-	return fantasy.MarshalProviderType(TypeReasoningMetadata, plain(m))
+	return unillm.MarshalProviderType(TypeReasoningMetadata, plain(m))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ReasoningMetadata.
 func (m *ReasoningMetadata) UnmarshalJSON(data []byte) error {
 	type plain ReasoningMetadata
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*m = ReasoningMetadata(p)
@@ -101,14 +101,14 @@ func (o *ProviderOptions) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderOptions.
 func (o ProviderOptions) MarshalJSON() ([]byte, error) {
 	type plain ProviderOptions
-	return fantasy.MarshalProviderType(TypeProviderOptions, plain(o))
+	return unillm.MarshalProviderType(TypeProviderOptions, plain(o))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderOptions.
 func (o *ProviderOptions) UnmarshalJSON(data []byte) error {
 	type plain ProviderOptions
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*o = ProviderOptions(p)
@@ -118,7 +118,7 @@ func (o *ProviderOptions) UnmarshalJSON(data []byte) error {
 // ParseOptions parses provider options from a map for the Google provider.
 func ParseOptions(data map[string]any) (*ProviderOptions, error) {
 	var options ProviderOptions
-	if err := fantasy.ParseOptions(data, &options); err != nil {
+	if err := unillm.ParseOptions(data, &options); err != nil {
 		return nil, err
 	}
 	return &options, nil

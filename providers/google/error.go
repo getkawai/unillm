@@ -13,9 +13,9 @@ func toProviderErr(err error) error {
 	if !errors.As(err, &apiErr) {
 		return err
 	}
-	return &fantasy.ProviderError{
+	return &unillm.ProviderError{
 		Message:      apiErr.Message,
-		Title:        cmp.Or(fantasy.ErrorTitleForStatusCode(apiErr.Code), "provider request failed"),
+		Title:        cmp.Or(unillm.ErrorTitleForStatusCode(apiErr.Code), "provider request failed"),
 		Cause:        err,
 		StatusCode:   apiErr.Code,
 		ResponseBody: []byte(apiErr.Message),

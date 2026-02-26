@@ -1,4 +1,4 @@
-package fantasy
+package unillm
 
 import (
 	"encoding/json"

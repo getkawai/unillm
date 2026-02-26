@@ -64,7 +64,7 @@ func TestProviderOptions(t *testing.T) {
 func TestLanguageModelInterface(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should implement fantasy.LanguageModel interface", func(t *testing.T) {
+	t.Run("should implement unillm.LanguageModel interface", func(t *testing.T) {
 		t.Parallel()
 
 		model := &languageModel{
@@ -73,7 +73,7 @@ func TestLanguageModelInterface(t *testing.T) {
 		}
 
 		// Verify interface compliance
-		var _ fantasy.LanguageModel = model
+		var _ unillm.LanguageModel = model
 
 		require.Equal(t, "llama", model.Provider())
 		require.Equal(t, "test-model.gguf", model.Model())
@@ -147,8 +147,8 @@ func TestEnhanceWithTools(t *testing.T) {
 	t.Run("should return original messages when no tools provided", func(t *testing.T) {
 		t.Parallel()
 
-		messages := fantasy.Prompt{
-			fantasy.NewUserMessage("Hello"),
+		messages := unillm.Prompt{
+			unillm.NewUserMessage("Hello"),
 		}
 
 		result := model.enhanceWithTools(messages, nil)
@@ -159,11 +159,11 @@ func TestEnhanceWithTools(t *testing.T) {
 	t.Run("should return original messages when empty tools provided", func(t *testing.T) {
 		t.Parallel()
 
-		messages := fantasy.Prompt{
-			fantasy.NewUserMessage("Hello"),
+		messages := unillm.Prompt{
+			unillm.NewUserMessage("Hello"),
 		}
 
-		result := model.enhanceWithTools(messages, []fantasy.Tool{})
+		result := model.enhanceWithTools(messages, []unillm.Tool{})
 
 		require.Equal(t, messages, result)
 	})
@@ -171,12 +171,12 @@ func TestEnhanceWithTools(t *testing.T) {
 	t.Run("should add system message with tools when no system message exists", func(t *testing.T) {
 		t.Parallel()
 
-		messages := fantasy.Prompt{
-			fantasy.NewUserMessage("Hello"),
+		messages := unillm.Prompt{
+			unillm.NewUserMessage("Hello"),
 		}
 
-		tools := []fantasy.Tool{
-			fantasy.FunctionTool{
+		tools := []unillm.Tool{
+			unillm.FunctionTool{
 				Name:        "test_tool",
 				Description: "A test tool",
 				InputSchema: map[string]any{
@@ -191,19 +191,19 @@ func TestEnhanceWithTools(t *testing.T) {
 		result := model.enhanceWithTools(messages, tools)
 
 		require.Len(t, result, 2) // System message added + original user message
-		require.Equal(t, fantasy.MessageRoleSystem, result[0].Role)
+		require.Equal(t, unillm.MessageRoleSystem, result[0].Role)
 	})
 
 	t.Run("should enhance existing system message with tools", func(t *testing.T) {
 		t.Parallel()
 
-		messages := fantasy.Prompt{
-			fantasy.NewSystemMessage("You are helpful."),
-			fantasy.NewUserMessage("Hello"),
+		messages := unillm.Prompt{
+			unillm.NewSystemMessage("You are helpful."),
+			unillm.NewUserMessage("Hello"),
 		}
 
-		tools := []fantasy.Tool{
-			fantasy.FunctionTool{
+		tools := []unillm.Tool{
+			unillm.FunctionTool{
 				Name:        "search",
 				Description: "Search the web",
 				InputSchema: map[string]any{
@@ -216,12 +216,12 @@ func TestEnhanceWithTools(t *testing.T) {
 		result := model.enhanceWithTools(messages, tools)
 
 		require.Len(t, result, 2)
-		require.Equal(t, fantasy.MessageRoleSystem, result[0].Role)
+		require.Equal(t, unillm.MessageRoleSystem, result[0].Role)
 
 		// Get system message text
 		var systemText string
 		for _, part := range result[0].Content {
-			if tp, ok := part.(fantasy.TextPart); ok {
+			if tp, ok := part.(unillm.TextPart); ok {
 				systemText = tp.Text
 				break
 			}
@@ -293,16 +293,16 @@ func TestConvertToTemplateMessages(t *testing.T) {
 
 	model := &languageModel{}
 
-	t.Run("should pass through fantasy.Prompt unchanged", func(t *testing.T) {
+	t.Run("should pass through unillm.Prompt unchanged", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
-			fantasy.NewSystemMessage("You are helpful."),
-			fantasy.NewUserMessage("Hello"),
+		prompt := unillm.Prompt{
+			unillm.NewSystemMessage("You are helpful."),
+			unillm.NewUserMessage("Hello"),
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hi there!"},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hi there!"},
 				},
 			},
 		}
@@ -341,9 +341,9 @@ func TestIntegrationGenerate(t *testing.T) {
 
 		// Simple generation test
 		maxTokens := int64(100)
-		response, err := model.Generate(ctx, fantasy.Call{
-			Prompt: fantasy.Prompt{
-				fantasy.NewUserMessage("Say hello in exactly 3 words."),
+		response, err := model.Generate(ctx, unillm.Call{
+			Prompt: unillm.Prompt{
+				unillm.NewUserMessage("Say hello in exactly 3 words."),
 			},
 			MaxOutputTokens: &maxTokens,
 		})
@@ -355,7 +355,7 @@ func TestIntegrationGenerate(t *testing.T) {
 		// Check we got text content
 		var hasText bool
 		for _, content := range response.Content {
-			if tc, ok := content.(fantasy.TextContent); ok {
+			if tc, ok := content.(unillm.TextContent); ok {
 				t.Logf("Response: %s", tc.Text)
 				hasText = len(tc.Text) > 0
 				break
@@ -396,9 +396,9 @@ func TestIntegrationStream(t *testing.T) {
 		require.NoError(t, err)
 
 		maxTokens := int64(50)
-		stream, err := model.Stream(ctx, fantasy.Call{
-			Prompt: fantasy.Prompt{
-				fantasy.NewUserMessage("Count from 1 to 5."),
+		stream, err := model.Stream(ctx, unillm.Call{
+			Prompt: unillm.Prompt{
+				unillm.NewUserMessage("Count from 1 to 5."),
 			},
 			MaxOutputTokens: &maxTokens,
 		})
@@ -411,13 +411,13 @@ func TestIntegrationStream(t *testing.T) {
 
 		for part := range stream {
 			switch part.Type {
-			case fantasy.StreamPartTypeTextDelta:
+			case unillm.StreamPartTypeTextDelta:
 				textDeltas = append(textDeltas, part.Delta)
 				t.Logf("Delta: %q", part.Delta)
-			case fantasy.StreamPartTypeFinish:
+			case unillm.StreamPartTypeFinish:
 				gotFinish = true
 				t.Logf("Finish reason: %s", part.FinishReason)
-			case fantasy.StreamPartTypeError:
+			case unillm.StreamPartTypeError:
 				t.Fatalf("Stream error: %v", part.Error)
 			}
 		}

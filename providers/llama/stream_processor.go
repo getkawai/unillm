@@ -3,9 +3,9 @@ package llama
 import (
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/getkawai/unillm"
 	"github.com/getkawai/tools"
+	"github.com/getkawai/unillm"
+	"github.com/google/uuid"
 )
 
 type streamState int
@@ -17,7 +17,7 @@ const (
 )
 
 type streamProcessor struct {
-	yield func(fantasy.StreamPart) bool
+	yield func(unillm.StreamPart) bool
 	state streamState
 
 	textStarted      bool
@@ -29,7 +29,7 @@ type streamProcessor struct {
 	currentToolID string
 }
 
-func newStreamProcessor(yield func(fantasy.StreamPart) bool) *streamProcessor {
+func newStreamProcessor(yield func(unillm.StreamPart) bool) *streamProcessor {
 	return &streamProcessor{
 		yield: yield,
 		state: stateText,
@@ -162,10 +162,10 @@ func (p *streamProcessor) emitText(text string) {
 		return
 	}
 	if !p.textStarted {
-		p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeTextStart, ID: "0"})
+		p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeTextStart, ID: "0"})
 		p.textStarted = true
 	}
-	p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeTextDelta, ID: "0", Delta: text})
+	p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeTextDelta, ID: "0", Delta: text})
 }
 
 func (p *streamProcessor) emitReasoning(text string) {
@@ -173,15 +173,15 @@ func (p *streamProcessor) emitReasoning(text string) {
 		return
 	}
 	if !p.reasoningStarted {
-		p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeReasoningStart, ID: "0"})
+		p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeReasoningStart, ID: "0"})
 		p.reasoningStarted = true
 	}
-	p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeReasoningDelta, ID: "0", Delta: text})
+	p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeReasoningDelta, ID: "0", Delta: text})
 }
 
 func (p *streamProcessor) finishReasoning() {
 	if p.reasoningStarted {
-		p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeReasoningEnd, ID: "0"})
+		p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeReasoningEnd, ID: "0"})
 		p.reasoningStarted = false
 	}
 }
@@ -192,10 +192,10 @@ func (p *streamProcessor) emitToolInput(text string) {
 	}
 	if !p.toolInputStarted {
 		p.currentToolID = uuid.NewString()
-		p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeToolInputStart, ID: p.currentToolID})
+		p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeToolInputStart, ID: p.currentToolID})
 		p.toolInputStarted = true
 	}
-	p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeToolInputDelta, ID: p.currentToolID, Delta: text})
+	p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeToolInputDelta, ID: p.currentToolID, Delta: text})
 }
 
 func (p *streamProcessor) handleToolCall(jsonStr string) {
@@ -206,15 +206,15 @@ func (p *streamProcessor) handleToolCall(jsonStr string) {
 		tc := calls[0]
 		if !p.toolInputStarted {
 			p.currentToolID = tc.ID
-			p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeToolInputStart, ID: p.currentToolID, ToolCallName: tc.Name})
+			p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeToolInputStart, ID: p.currentToolID, ToolCallName: tc.Name})
 		} else {
 			// If we already started tool input, we might need to send a final delta if there's any left
 			// but ParseToolCalls already got the whole thing.
 		}
 
-		p.yield(fantasy.StreamPart{Type: fantasy.StreamPartTypeToolInputEnd, ID: p.currentToolID})
-		p.yield(fantasy.StreamPart{
-			Type:          fantasy.StreamPartTypeToolCall,
+		p.yield(unillm.StreamPart{Type: unillm.StreamPartTypeToolInputEnd, ID: p.currentToolID})
+		p.yield(unillm.StreamPart{
+			Type:          unillm.StreamPartTypeToolCall,
 			ID:            p.currentToolID,
 			ToolCallName:  tc.Name,
 			ToolCallInput: tc.Input,

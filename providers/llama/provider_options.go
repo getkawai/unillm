@@ -12,7 +12,7 @@ const (
 )
 
 func init() {
-	fantasy.RegisterProviderType(TypeProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var opts ProviderOptions
 		if err := json.Unmarshal(data, &opts); err != nil {
 			return nil, err
@@ -42,20 +42,20 @@ type ProviderOptions struct {
 	UseReasoningMode bool `json:"use_reasoning_mode,omitempty"`
 }
 
-// Options implements fantasy.ProviderOptionsData.
+// Options implements unillm.ProviderOptionsData.
 func (*ProviderOptions) Options() {}
 
 // MarshalJSON implements json.Marshaler.
 func (p ProviderOptions) MarshalJSON() ([]byte, error) {
 	type plain ProviderOptions
-	return fantasy.MarshalProviderType(TypeProviderOptions, plain(p))
+	return unillm.MarshalProviderType(TypeProviderOptions, plain(p))
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (p *ProviderOptions) UnmarshalJSON(data []byte) error {
 	type plain ProviderOptions
 	var pp plain
-	if err := fantasy.UnmarshalProviderType(data, &pp); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &pp); err != nil {
 		return err
 	}
 	*p = ProviderOptions(pp)

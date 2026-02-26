@@ -1,4 +1,4 @@
-// Package openai provides an implementation of the fantasy AI SDK for OpenAI's language models.
+// Package openai provides an implementation of the unillm AI SDK for OpenAI's language models.
 package openai
 
 import (
@@ -32,7 +32,7 @@ type options struct {
 	headers              map[string]string
 	client               option.HTTPClient
 	sdkOptions           []option.RequestOption
-	objectMode           fantasy.ObjectMode
+	objectMode           unillm.ObjectMode
 	languageModelOptions []LanguageModelOption
 }
 
@@ -40,7 +40,7 @@ type options struct {
 type Option = func(*options)
 
 // New creates a new OpenAI provider with the given options.
-func New(opts ...Option) (fantasy.Provider, error) {
+func New(opts ...Option) (unillm.Provider, error) {
 	providerOptions := options{
 		headers:              map[string]string{},
 		languageModelOptions: make([]LanguageModelOption, 0),
@@ -133,18 +133,18 @@ func WithUseResponsesAPI() Option {
 }
 
 // WithObjectMode sets the object generation mode.
-func WithObjectMode(om fantasy.ObjectMode) Option {
+func WithObjectMode(om unillm.ObjectMode) Option {
 	return func(o *options) {
 		// not supported
-		if om == fantasy.ObjectModeJSON {
-			om = fantasy.ObjectModeAuto
+		if om == unillm.ObjectModeJSON {
+			om = unillm.ObjectModeAuto
 		}
 		o.objectMode = om
 	}
 }
 
-// LanguageModel implements fantasy.Provider.
-func (o *provider) LanguageModel(_ context.Context, modelID string) (fantasy.LanguageModel, error) {
+// LanguageModel implements unillm.Provider.
+func (o *provider) LanguageModel(_ context.Context, modelID string) (unillm.LanguageModel, error) {
 	openaiClientOptions := make([]option.RequestOption, 0, 5+len(o.options.headers)+len(o.options.sdkOptions))
 	openaiClientOptions = append(openaiClientOptions, option.WithMaxRetries(0))
 
@@ -170,8 +170,8 @@ func (o *provider) LanguageModel(_ context.Context, modelID string) (fantasy.Lan
 	if o.options.useResponsesAPI && IsResponsesModel(modelID) {
 		// Not supported for responses API
 		objectMode := o.options.objectMode
-		if objectMode == fantasy.ObjectModeJSON {
-			objectMode = fantasy.ObjectModeAuto
+		if objectMode == unillm.ObjectModeJSON {
+			objectMode = unillm.ObjectModeAuto
 		}
 		return newResponsesLanguageModel(modelID, o.options.name, client, objectMode), nil
 	}

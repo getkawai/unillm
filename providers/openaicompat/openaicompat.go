@@ -1,4 +1,4 @@
-// Package openaicompat provides an implementation of the fantasy AI SDK for OpenAI-compatible APIs.
+// Package openaicompat provides an implementation of the unillm AI SDK for OpenAI-compatible APIs.
 package openaicompat
 
 import (
@@ -11,7 +11,7 @@ type options struct {
 	openaiOptions        []openai.Option
 	languageModelOptions []openai.LanguageModelOption
 	sdkOptions           []option.RequestOption
-	objectMode           fantasy.ObjectMode
+	objectMode           unillm.ObjectMode
 }
 
 const (
@@ -23,7 +23,7 @@ const (
 type Option = func(*options)
 
 // New creates a new OpenAI-compatible provider with the given options.
-func New(opts ...Option) (fantasy.Provider, error) {
+func New(opts ...Option) (unillm.Provider, error) {
 	providerOptions := options{
 		openaiOptions: []openai.Option{
 			openai.WithName(Name),
@@ -34,7 +34,7 @@ func New(opts ...Option) (fantasy.Provider, error) {
 			openai.WithLanguageModelExtraContentFunc(ExtraContentFunc),
 			openai.WithLanguageModelToPromptFunc(ToPromptFunc),
 		},
-		objectMode: fantasy.ObjectModeTool, // Default to tool mode for openai-compat
+		objectMode: unillm.ObjectModeTool, // Default to tool mode for openai-compat
 	}
 	for _, o := range opts {
 		o(&providerOptions)
@@ -43,8 +43,8 @@ func New(opts ...Option) (fantasy.Provider, error) {
 	// Handle object mode: convert unsupported modes to tool
 	// OpenAI-compat endpoints don't support native JSON mode, so we use tool or text
 	objectMode := providerOptions.objectMode
-	if objectMode == fantasy.ObjectModeAuto || objectMode == fantasy.ObjectModeJSON {
-		objectMode = fantasy.ObjectModeTool
+	if objectMode == unillm.ObjectModeAuto || objectMode == unillm.ObjectModeJSON {
+		objectMode = unillm.ObjectModeTool
 	}
 
 	providerOptions.openaiOptions = append(
@@ -102,7 +102,7 @@ func WithSDKOptions(opts ...option.RequestOption) Option {
 // Supported modes: ObjectModeTool, ObjectModeText.
 // ObjectModeAuto and ObjectModeJSON are automatically converted to ObjectModeTool
 // since OpenAI-compatible endpoints typically don't support native JSON mode.
-func WithObjectMode(om fantasy.ObjectMode) Option {
+func WithObjectMode(om unillm.ObjectMode) Option {
 	return func(o *options) {
 		o.objectMode = om
 	}

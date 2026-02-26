@@ -1,6 +1,6 @@
 // Package llamavl provides a Vision-Language (VL) provider for local llama.cpp models.
 // This provider handles image processing and description using VL models like Qwen-VL.
-// For text generation, use fantasy/providers/llama.
+// For text generation, use unillm/providers/llama.
 package llamavl
 
 import (

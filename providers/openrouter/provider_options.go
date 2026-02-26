@@ -1,4 +1,4 @@
-// Package openrouter provides an implementation of the fantasy AI SDK for OpenRouter's language models.
+// Package openrouter provides an implementation of the unillm AI SDK for OpenRouter's language models.
 package openrouter
 
 import (
@@ -27,14 +27,14 @@ const (
 
 // Register OpenRouter provider-specific types with the global registry.
 func init() {
-	fantasy.RegisterProviderType(TypeProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderOptions
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
 		return &v, nil
 	})
-	fantasy.RegisterProviderType(TypeProviderMetadata, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderMetadata, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderMetadata
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
@@ -83,14 +83,14 @@ func (*ProviderMetadata) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderMetadata.
 func (m ProviderMetadata) MarshalJSON() ([]byte, error) {
 	type plain ProviderMetadata
-	return fantasy.MarshalProviderType(TypeProviderMetadata, plain(m))
+	return unillm.MarshalProviderType(TypeProviderMetadata, plain(m))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderMetadata.
 func (m *ProviderMetadata) UnmarshalJSON(data []byte) error {
 	type plain ProviderMetadata
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*m = ProviderMetadata(p)
@@ -156,14 +156,14 @@ func (*ProviderOptions) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderOptions.
 func (o ProviderOptions) MarshalJSON() ([]byte, error) {
 	type plain ProviderOptions
-	return fantasy.MarshalProviderType(TypeProviderOptions, plain(o))
+	return unillm.MarshalProviderType(TypeProviderOptions, plain(o))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderOptions.
 func (o *ProviderOptions) UnmarshalJSON(data []byte) error {
 	type plain ProviderOptions
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*o = ProviderOptions(p)
@@ -194,8 +194,8 @@ func ReasoningEffortOption(e ReasoningEffort) *ReasoningEffort {
 }
 
 // NewProviderOptions creates new provider options for OpenRouter.
-func NewProviderOptions(opts *ProviderOptions) fantasy.ProviderOptions {
-	return fantasy.ProviderOptions{
+func NewProviderOptions(opts *ProviderOptions) unillm.ProviderOptions {
+	return unillm.ProviderOptions{
 		Name: opts,
 	}
 }
@@ -203,7 +203,7 @@ func NewProviderOptions(opts *ProviderOptions) fantasy.ProviderOptions {
 // ParseOptions parses provider options from a map for OpenRouter.
 func ParseOptions(data map[string]any) (*ProviderOptions, error) {
 	var options ProviderOptions
-	if err := fantasy.ParseOptions(data, &options); err != nil {
+	if err := unillm.ParseOptions(data, &options); err != nil {
 		return nil, err
 	}
 	return &options, nil

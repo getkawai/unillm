@@ -1,4 +1,4 @@
-package fantasy
+package unillm
 
 import "encoding/json"
 
@@ -18,7 +18,7 @@ import "encoding/json"
 //
 //	// Register the type in init() - place at top of file after constants
 //	func init() {
-//	    fantasy.RegisterProviderType(TypeMyProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+//	    unillm.RegisterProviderType(TypeMyProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 //	        var opts MyProviderOptions
 //	        if err := json.Unmarshal(data, &opts); err != nil {
 //	            return nil, err
@@ -33,7 +33,7 @@ import "encoding/json"
 //	// Implement json.Marshaler using the generic helper
 //	func (m MyProviderOptions) MarshalJSON() ([]byte, error) {
 //	    type plain MyProviderOptions
-//	    return fantasy.MarshalProviderType(TypeMyProviderOptions, plain(m))
+//	    return unillm.MarshalProviderType(TypeMyProviderOptions, plain(m))
 //	}
 //
 //	// Implement json.Unmarshaler using the generic helper
@@ -41,7 +41,7 @@ import "encoding/json"
 //	func (m *MyProviderOptions) UnmarshalJSON(data []byte) error {
 //	    type plain MyProviderOptions
 //	    var p plain
-//	    if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+//	    if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 //	        return err
 //	    }
 //	    *m = MyProviderOptions(p)

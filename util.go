@@ -1,4 +1,4 @@
-package fantasy
+package unillm
 
 import "github.com/go-viper/mapstructure/v2"
 

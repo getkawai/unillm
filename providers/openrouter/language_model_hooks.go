@@ -15,12 +15,12 @@ import (
 
 const reasoningStartedCtx = "reasoning_started"
 
-func languagePrepareModelCall(_ fantasy.LanguageModel, params *openaisdk.ChatCompletionNewParams, call fantasy.Call) ([]fantasy.CallWarning, error) {
+func languagePrepareModelCall(_ unillm.LanguageModel, params *openaisdk.ChatCompletionNewParams, call unillm.Call) ([]unillm.CallWarning, error) {
 	providerOptions := &ProviderOptions{}
 	if v, ok := call.ProviderOptions[Name]; ok {
 		providerOptions, ok = v.(*ProviderOptions)
 		if !ok {
-			return nil, &fantasy.Error{Title: "invalid argument", Message: "openrouter provider options should be *openrouter.ProviderOptions"}
+			return nil, &unillm.Error{Title: "invalid argument", Message: "openrouter provider options should be *openrouter.ProviderOptions"}
 		}
 	}
 
@@ -69,8 +69,8 @@ func languagePrepareModelCall(_ fantasy.LanguageModel, params *openaisdk.ChatCom
 	return nil, nil
 }
 
-func languageModelExtraContent(choice openaisdk.ChatCompletionChoice) []fantasy.Content {
-	content := make([]fantasy.Content, 0)
+func languageModelExtraContent(choice openaisdk.ChatCompletionChoice) []unillm.Content {
+	content := make([]unillm.Content, 0)
 	reasoningData := ReasoningData{}
 	err := json.Unmarshal([]byte(choice.Message.RawJSON()), &reasoningData)
 	if err != nil {
@@ -111,16 +111,16 @@ func languageModelExtraContent(choice openaisdk.ChatCompletionChoice) []fantasy.
 		if len(block.Summary) == 0 {
 			block.Summary = []string{""}
 		}
-		content = append(content, fantasy.ReasoningContent{
+		content = append(content, unillm.ReasoningContent{
 			Text: strings.Join(block.Summary, "\n"),
-			ProviderMetadata: fantasy.ProviderMetadata{
+			ProviderMetadata: unillm.ProviderMetadata{
 				openai.Name: &block,
 			},
 		})
 	}
 
 	for _, reasoning := range otherReasoning {
-		content = append(content, fantasy.ReasoningContent{
+		content = append(content, unillm.ReasoningContent{
 			Text: reasoning,
 		})
 	}
@@ -143,7 +143,7 @@ func extractReasoningContext(ctx map[string]any) *currentReasoningState {
 	return state
 }
 
-func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fantasy.StreamPart) bool, ctx map[string]any) (map[string]any, bool) {
+func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(unillm.StreamPart) bool, ctx map[string]any) (map[string]any, bool) {
 	if len(chunk.Choices) == 0 {
 		return ctx, true
 	}
@@ -155,9 +155,9 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 	reasoningData := ReasoningData{}
 	err := json.Unmarshal([]byte(choice.Delta.RawJSON()), &reasoningData)
 	if err != nil {
-		yield(fantasy.StreamPart{
-			Type:  fantasy.StreamPartTypeError,
-			Error: &fantasy.Error{Title: "stream error", Message: "error unmarshalling delta", Cause: err},
+		yield(unillm.StreamPart{
+			Type:  unillm.StreamPartTypeError,
+			Error: &unillm.Error{Title: "stream error", Message: "error unmarshalling delta", Cause: err},
 		})
 		return ctx, false
 	}
@@ -167,7 +167,7 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 			return ctx, true
 		}
 
-		var metadata fantasy.ProviderMetadata
+		var metadata unillm.ProviderMetadata
 		currentState = &currentReasoningState{}
 
 		detail := reasoningData.ReasoningDetails[0]
@@ -175,12 +175,12 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 			currentState.metadata = &openai.ResponsesReasoningMetadata{
 				Summary: []string{detail.Summary},
 			}
-			metadata = fantasy.ProviderMetadata{
+			metadata = unillm.ProviderMetadata{
 				openai.Name: currentState.metadata,
 			}
 			if detail.Data != "" {
-				shouldContinue := yield(fantasy.StreamPart{
-					Type:             fantasy.StreamPartTypeReasoningStart,
+				shouldContinue := yield(unillm.StreamPart{
+					Type:             unillm.StreamPartTypeReasoningStart,
 					ID:               fmt.Sprintf("%d", inx),
 					Delta:            detail.Summary,
 					ProviderMetadata: metadata,
@@ -188,10 +188,10 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 				if !shouldContinue {
 					return ctx, false
 				}
-				return ctx, yield(fantasy.StreamPart{
-					Type: fantasy.StreamPartTypeReasoningEnd,
+				return ctx, yield(unillm.StreamPart{
+					Type: unillm.StreamPartTypeReasoningEnd,
 					ID:   fmt.Sprintf("%d", inx),
-					ProviderMetadata: fantasy.ProviderMetadata{
+					ProviderMetadata: unillm.ProviderMetadata{
 						openai.Name: &openai.ResponsesReasoningMetadata{
 							Summary:          []string{detail.Summary},
 							EncryptedContent: &detail.Data,
@@ -203,8 +203,8 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 		}
 
 		ctx[reasoningStartedCtx] = currentState
-		return ctx, yield(fantasy.StreamPart{
-			Type:             fantasy.StreamPartTypeReasoningStart,
+		return ctx, yield(unillm.StreamPart{
+			Type:             unillm.StreamPartTypeReasoningStart,
 			ID:               fmt.Sprintf("%d", inx),
 			Delta:            detail.Summary,
 			ProviderMetadata: metadata,
@@ -214,8 +214,8 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 	if len(reasoningData.ReasoningDetails) == 0 {
 		if choice.Delta.Content != "" || len(choice.Delta.ToolCalls) > 0 {
 			ctx[reasoningStartedCtx] = nil
-			return ctx, yield(fantasy.StreamPart{
-				Type: fantasy.StreamPartTypeReasoningEnd,
+			return ctx, yield(unillm.StreamPart{
+				Type: unillm.StreamPartTypeReasoningEnd,
 				ID:   fmt.Sprintf("%d", inx),
 			})
 		}
@@ -228,10 +228,10 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 			currentState.metadata.EncryptedContent = &detail.Data
 			currentState.metadata.ItemID = detail.ID
 			ctx[reasoningStartedCtx] = nil
-			return ctx, yield(fantasy.StreamPart{
-				Type: fantasy.StreamPartTypeReasoningEnd,
+			return ctx, yield(unillm.StreamPart{
+				Type: unillm.StreamPartTypeReasoningEnd,
 				ID:   fmt.Sprintf("%d", inx),
-				ProviderMetadata: fantasy.ProviderMetadata{
+				ProviderMetadata: unillm.ProviderMetadata{
 					openai.Name: currentState.metadata,
 				},
 			})
@@ -245,26 +245,26 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(fa
 			textDelta = "\n" + detail.Summary
 		}
 		ctx[reasoningStartedCtx] = currentState
-		return ctx, yield(fantasy.StreamPart{
-			Type:  fantasy.StreamPartTypeReasoningDelta,
+		return ctx, yield(unillm.StreamPart{
+			Type:  unillm.StreamPartTypeReasoningDelta,
 			ID:    fmt.Sprintf("%d", inx),
 			Delta: textDelta,
-			ProviderMetadata: fantasy.ProviderMetadata{
+			ProviderMetadata: unillm.ProviderMetadata{
 				openai.Name: currentState.metadata,
 			},
 		})
 	}
 
-	return ctx, yield(fantasy.StreamPart{
-		Type:  fantasy.StreamPartTypeReasoningDelta,
+	return ctx, yield(unillm.StreamPart{
+		Type:  unillm.StreamPartTypeReasoningDelta,
 		ID:    fmt.Sprintf("%d", inx),
 		Delta: detail.Text,
 	})
 }
 
-func languageModelUsage(response openaisdk.ChatCompletion) (fantasy.Usage, fantasy.ProviderOptionsData) {
+func languageModelUsage(response openaisdk.ChatCompletion) (unillm.Usage, unillm.ProviderOptionsData) {
 	if len(response.Choices) == 0 {
-		return fantasy.Usage{}, nil
+		return unillm.Usage{}, nil
 	}
 	openrouterUsage := UsageAccounting{}
 	usage := response.Usage
@@ -284,7 +284,7 @@ func languageModelUsage(response openaisdk.ChatCompletion) (fantasy.Usage, fanta
 		Usage:    openrouterUsage,
 	}
 
-	return fantasy.Usage{
+	return unillm.Usage{
 		InputTokens:     usage.PromptTokens,
 		OutputTokens:    usage.CompletionTokens,
 		TotalTokens:     usage.TotalTokens,
@@ -293,10 +293,10 @@ func languageModelUsage(response openaisdk.ChatCompletion) (fantasy.Usage, fanta
 	}, providerMetadata
 }
 
-func languageModelStreamUsage(chunk openaisdk.ChatCompletionChunk, _ map[string]any, metadata fantasy.ProviderMetadata) (fantasy.Usage, fantasy.ProviderMetadata) {
+func languageModelStreamUsage(chunk openaisdk.ChatCompletionChunk, _ map[string]any, metadata unillm.ProviderMetadata) (unillm.Usage, unillm.ProviderMetadata) {
 	usage := chunk.Usage
 	if usage.TotalTokens == 0 {
-		return fantasy.Usage{}, nil
+		return unillm.Usage{}, nil
 	}
 
 	streamProviderMetadata := &ProviderMetadata{}
@@ -318,7 +318,7 @@ func languageModelStreamUsage(chunk openaisdk.ChatCompletionChunk, _ map[string]
 
 	completionTokenDetails := usage.CompletionTokensDetails
 	promptTokenDetails := usage.PromptTokensDetails
-	aiUsage := fantasy.Usage{
+	aiUsage := unillm.Usage{
 		InputTokens:     usage.PromptTokens,
 		OutputTokens:    usage.CompletionTokens,
 		TotalTokens:     usage.TotalTokens,
@@ -326,28 +326,28 @@ func languageModelStreamUsage(chunk openaisdk.ChatCompletionChunk, _ map[string]
 		CacheReadTokens: promptTokenDetails.CachedTokens,
 	}
 
-	return aiUsage, fantasy.ProviderMetadata{
+	return aiUsage, unillm.ProviderMetadata{
 		Name: streamProviderMetadata,
 	}
 }
 
-func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.ChatCompletionMessageParamUnion, []fantasy.CallWarning) {
+func languageModelToPrompt(prompt unillm.Prompt, _, model string) ([]openaisdk.ChatCompletionMessageParamUnion, []unillm.CallWarning) {
 	var messages []openaisdk.ChatCompletionMessageParamUnion
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 
 	for _, msg := range prompt {
 		switch msg.Role {
-		case fantasy.MessageRoleSystem:
+		case unillm.MessageRoleSystem:
 			var systemPromptParts []string
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeText {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeText {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt can only have text content",
 					})
 					continue
 				}
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 				if !ok {
 					continue
 				}
@@ -360,9 +360,9 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 			}
 			messages = append(messages, openaisdk.SystemMessage(strings.Join(systemPromptParts, "\n")))
 
-		case fantasy.MessageRoleUser:
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+		case unillm.MessageRoleUser:
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if ok {
 					messages = append(messages, openaisdk.UserMessage(textPart.Text))
 					continue
@@ -371,8 +371,8 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 			var content []openaisdk.ChatCompletionContentPartUnionParam
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if ok {
 						content = append(content, openaisdk.ChatCompletionContentPartUnionParam{
 							OfText: &openaisdk.ChatCompletionContentPartTextParam{
@@ -380,8 +380,8 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 							},
 						})
 					}
-				case fantasy.ContentTypeFile:
-					filePart, ok := fantasy.AsContentType[fantasy.FilePart](c)
+				case unillm.ContentTypeFile:
+					filePart, ok := unillm.AsContentType[unillm.FilePart](c)
 					if !ok {
 						continue
 					}
@@ -442,9 +442,9 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 			}
 			messages = append(messages, openaisdk.UserMessage(content))
 
-		case fantasy.MessageRoleAssistant:
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+		case unillm.MessageRoleAssistant:
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if ok {
 					messages = append(messages, openaisdk.AssistantMessage(textPart.Text))
 					continue
@@ -455,15 +455,15 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 			}
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if ok {
 						assistantMsg.Content = openaisdk.ChatCompletionAssistantMessageParamContentUnion{
 							OfString: param.NewOpt(textPart.Text),
 						}
 					}
-				case fantasy.ContentTypeReasoning:
-					reasoningPart, ok := fantasy.AsContentType[fantasy.ReasoningPart](c)
+				case unillm.ContentTypeReasoning:
+					reasoningPart, ok := unillm.AsContentType[unillm.ReasoningPart](c)
 					if !ok {
 						continue
 					}
@@ -502,8 +502,8 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 					assistantMsg.SetExtraFields(map[string]any{
 						"reasoning_details": reasoningDetailsMap,
 					})
-				case fantasy.ContentTypeToolCall:
-					toolCallPart, ok := fantasy.AsContentType[fantasy.ToolCallPart](c)
+				case unillm.ContentTypeToolCall:
+					toolCallPart, ok := unillm.AsContentType[unillm.ToolCallPart](c)
 					if ok {
 						assistantMsg.ToolCalls = append(assistantMsg.ToolCalls,
 							openaisdk.ChatCompletionMessageToolCallUnionParam{
@@ -523,23 +523,23 @@ func languageModelToPrompt(prompt fantasy.Prompt, _, model string) ([]openaisdk.
 				OfAssistant: &assistantMsg,
 			})
 
-		case fantasy.MessageRoleTool:
+		case unillm.MessageRoleTool:
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeToolResult {
+				if c.GetType() != unillm.ContentTypeToolResult {
 					continue
 				}
-				toolResultPart, ok := fantasy.AsContentType[fantasy.ToolResultPart](c)
+				toolResultPart, ok := unillm.AsContentType[unillm.ToolResultPart](c)
 				if !ok {
 					continue
 				}
 				switch toolResultPart.Output.GetType() {
-				case fantasy.ToolResultContentTypeText:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](toolResultPart.Output)
+				case unillm.ToolResultContentTypeText:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentText](toolResultPart.Output)
 					if ok {
 						messages = append(messages, openaisdk.ToolMessage(output.Text, toolResultPart.ToolCallID))
 					}
-				case fantasy.ToolResultContentTypeError:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](toolResultPart.Output)
+				case unillm.ToolResultContentTypeError:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentError](toolResultPart.Output)
 					if ok {
 						messages = append(messages, openaisdk.ToolMessage(output.Error.Error(), toolResultPart.ToolCallID))
 					}

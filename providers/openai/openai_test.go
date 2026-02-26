@@ -21,11 +21,11 @@ func TestToOpenAiPrompt_SystemMessages(t *testing.T) {
 	t.Run("should forward system messages", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleSystem,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "You are a helpful assistant."},
+				Role: unillm.MessageRoleSystem,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "You are a helpful assistant."},
 				},
 			},
 		}
@@ -43,10 +43,10 @@ func TestToOpenAiPrompt_SystemMessages(t *testing.T) {
 	t.Run("should handle empty system messages", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role:    fantasy.MessageRoleSystem,
-				Content: []fantasy.MessagePart{},
+				Role:    unillm.MessageRoleSystem,
+				Content: []unillm.MessagePart{},
 			},
 		}
 
@@ -60,12 +60,12 @@ func TestToOpenAiPrompt_SystemMessages(t *testing.T) {
 	t.Run("should join multiple system text parts", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleSystem,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "You are a helpful assistant."},
-					fantasy.TextPart{Text: "Be concise."},
+				Role: unillm.MessageRoleSystem,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "You are a helpful assistant."},
+					unillm.TextPart{Text: "Be concise."},
 				},
 			},
 		}
@@ -87,11 +87,11 @@ func TestToOpenAiPrompt_UserMessages(t *testing.T) {
 	t.Run("should convert messages with only a text part to a string content", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
 				},
 			},
 		}
@@ -110,12 +110,12 @@ func TestToOpenAiPrompt_UserMessages(t *testing.T) {
 		t.Parallel()
 
 		imageData := []byte{0, 1, 2, 3}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello"},
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello"},
+					unillm.FilePart{
 						MediaType: "image/png",
 						Data:      imageData,
 					},
@@ -150,11 +150,11 @@ func TestToOpenAiPrompt_UserMessages(t *testing.T) {
 		t.Parallel()
 
 		imageData := []byte{0, 1, 2, 3}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "image/png",
 						Data:      imageData,
 						ProviderOptions: NewProviderFileOptions(&ProviderFileOptions{
@@ -188,11 +188,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 	t.Run("should throw for unsupported mime types", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/something",
 						Data:      []byte("test"),
 					},
@@ -211,11 +211,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		audioData := []byte{0, 1, 2, 3}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "audio/wav",
 						Data:      audioData,
 					},
@@ -244,11 +244,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		audioData := []byte{0, 1, 2, 3}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "audio/mpeg",
 						Data:      audioData,
 					},
@@ -272,11 +272,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		audioData := []byte{0, 1, 2, 3}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "audio/mp3",
 						Data:      audioData,
 					},
@@ -300,11 +300,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		pdfData := []byte{1, 2, 3, 4, 5}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/pdf",
 						Data:      pdfData,
 						Filename:  "document.pdf",
@@ -334,11 +334,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		pdfData := []byte{1, 2, 3, 4, 5}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/pdf",
 						Data:      pdfData,
 						Filename:  "document.pdf",
@@ -364,11 +364,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 	t.Run("should convert messages with PDF file parts using file_id", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/pdf",
 						Data:      []byte("file-pdf-12345"),
 					},
@@ -394,11 +394,11 @@ func TestToOpenAiPrompt_FileParts(t *testing.T) {
 		t.Parallel()
 
 		pdfData := []byte{1, 2, 3, 4, 5}
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleUser,
-				Content: []fantasy.MessagePart{
-					fantasy.FilePart{
+				Role: unillm.MessageRoleUser,
+				Content: []unillm.MessagePart{
+					unillm.FilePart{
 						MediaType: "application/pdf",
 						Data:      pdfData,
 					},
@@ -431,11 +431,11 @@ func TestToOpenAiPrompt_ToolCalls(t *testing.T) {
 		outputResult := map[string]any{"oof": "321rab"}
 		outputJSON, _ := json.Marshal(outputResult)
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.ToolCallPart{
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.ToolCallPart{
 						ToolCallID: "quux",
 						ToolName:   "thwomp",
 						Input:      string(inputJSON),
@@ -443,11 +443,11 @@ func TestToOpenAiPrompt_ToolCalls(t *testing.T) {
 				},
 			},
 			{
-				Role: fantasy.MessageRoleTool,
-				Content: []fantasy.MessagePart{
-					fantasy.ToolResultPart{
+				Role: unillm.MessageRoleTool,
+				Content: []unillm.MessagePart{
+					unillm.ToolResultPart{
 						ToolCallID: "quux",
-						Output: fantasy.ToolResultOutputContentText{
+						Output: unillm.ToolResultOutputContentText{
 							Text: string(outputJSON),
 						},
 					},
@@ -482,19 +482,19 @@ func TestToOpenAiPrompt_ToolCalls(t *testing.T) {
 	t.Run("should handle different tool output types", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleTool,
-				Content: []fantasy.MessagePart{
-					fantasy.ToolResultPart{
+				Role: unillm.MessageRoleTool,
+				Content: []unillm.MessagePart{
+					unillm.ToolResultPart{
 						ToolCallID: "text-tool",
-						Output: fantasy.ToolResultOutputContentText{
+						Output: unillm.ToolResultOutputContentText{
 							Text: "Hello world",
 						},
 					},
-					fantasy.ToolResultPart{
+					unillm.ToolResultPart{
 						ToolCallID: "error-tool",
-						Output: fantasy.ToolResultOutputContentError{
+						Output: unillm.ToolResultOutputContentError{
 							Error: errors.New("Something went wrong"),
 						},
 					},
@@ -527,11 +527,11 @@ func TestToOpenAiPrompt_AssistantMessages(t *testing.T) {
 	t.Run("should handle simple text assistant messages", func(t *testing.T) {
 		t.Parallel()
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Hello, how can I help you?"},
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Hello, how can I help you?"},
 				},
 			},
 		}
@@ -552,12 +552,12 @@ func TestToOpenAiPrompt_AssistantMessages(t *testing.T) {
 		inputArgs := map[string]any{"query": "test"}
 		inputJSON, _ := json.Marshal(inputArgs)
 
-		prompt := fantasy.Prompt{
+		prompt := unillm.Prompt{
 			{
-				Role: fantasy.MessageRoleAssistant,
-				Content: []fantasy.MessagePart{
-					fantasy.TextPart{Text: "Let me search for that."},
-					fantasy.ToolCallPart{
+				Role: unillm.MessageRoleAssistant,
+				Content: []unillm.MessagePart{
+					unillm.TextPart{Text: "Let me search for that."},
+					unillm.ToolCallPart{
 						ToolCallID: "call-123",
 						ToolName:   "search",
 						Input:      string(inputJSON),
@@ -583,11 +583,11 @@ func TestToOpenAiPrompt_AssistantMessages(t *testing.T) {
 	})
 }
 
-var testPrompt = fantasy.Prompt{
+var testPrompt = unillm.Prompt{
 	{
-		Role: fantasy.MessageRoleUser,
-		Content: []fantasy.MessagePart{
-			fantasy.TextPart{Text: "Hello"},
+		Role: unillm.MessageRoleUser,
+		Content: []unillm.MessagePart{
+			unillm.TextPart{Text: "Hello"},
 		},
 	},
 }
@@ -816,14 +816,14 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
 		require.NoError(t, err)
 		require.Len(t, result.Content, 1)
 
-		textContent, ok := result.Content[0].(fantasy.TextContent)
+		textContent, ok := result.Content[0].(unillm.TextContent)
 		require.True(t, ok)
 		require.Equal(t, "Hello, World!", textContent.Text)
 	})
@@ -849,7 +849,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -874,7 +874,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -915,7 +915,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -942,10 +942,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				LogProbs: fantasy.Opt(true),
+				LogProbs: unillm.Opt(true),
 			}),
 		})
 
@@ -977,12 +977,12 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, fantasy.FinishReasonStop, result.FinishReason)
+		require.Equal(t, unillm.FinishReasonStop, result.FinishReason)
 	})
 
 	t.Run("should support unknown finish reason", func(t *testing.T) {
@@ -1002,12 +1002,12 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, fantasy.FinishReasonUnknown, result.FinishReason)
+		require.Equal(t, unillm.FinishReasonUnknown, result.FinishReason)
 	})
 
 	t.Run("should pass the model and the messages", func(t *testing.T) {
@@ -1027,7 +1027,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -1060,14 +1060,14 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
 				LogitBias: map[string]int64{
 					"50256": -100,
 				},
-				ParallelToolCalls: fantasy.Opt(false),
-				User:              fantasy.Opt("test-user-id"),
+				ParallelToolCalls: unillm.Opt(false),
+				User:              unillm.Opt("test-user-id"),
 			}),
 		})
 
@@ -1103,7 +1103,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-mini")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(
 				&ProviderOptions{
@@ -1144,10 +1144,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				TextVerbosity: fantasy.Opt("low"),
+				TextVerbosity: unillm.Opt("low"),
 			}),
 		})
 
@@ -1183,10 +1183,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
-			Tools: []fantasy.Tool{
-				fantasy.FunctionTool{
+			Tools: []unillm.Tool{
+				unillm.FunctionTool{
 					Name: "test-tool",
 					InputSchema: map[string]any{
 						"type": "object",
@@ -1201,7 +1201,7 @@ func TestDoGenerate(t *testing.T) {
 					},
 				},
 			},
-			ToolChoice: &[]fantasy.ToolChoice{fantasy.ToolChoice("test-tool")}[0],
+			ToolChoice: &[]unillm.ToolChoice{unillm.ToolChoice("test-tool")}[0],
 		})
 
 		require.NoError(t, err)
@@ -1256,10 +1256,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
-			Tools: []fantasy.Tool{
-				fantasy.FunctionTool{
+			Tools: []unillm.Tool{
+				unillm.FunctionTool{
 					Name: "test-tool",
 					InputSchema: map[string]any{
 						"type": "object",
@@ -1274,13 +1274,13 @@ func TestDoGenerate(t *testing.T) {
 					},
 				},
 			},
-			ToolChoice: &[]fantasy.ToolChoice{fantasy.ToolChoice("test-tool")}[0],
+			ToolChoice: &[]unillm.ToolChoice{unillm.ToolChoice("test-tool")}[0],
 		})
 
 		require.NoError(t, err)
 		require.Len(t, result.Content, 1)
 
-		toolCall, ok := result.Content[0].(fantasy.ToolCallContent)
+		toolCall, ok := result.Content[0].(unillm.ToolCallContent)
 		require.True(t, ok)
 		require.Equal(t, "call_O17Uplv4lJvD6DVdIvFFeRMw", toolCall.ToolCallID)
 		require.Equal(t, "test-tool", toolCall.ToolName)
@@ -1315,20 +1315,20 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
 		require.NoError(t, err)
 		require.Len(t, result.Content, 2)
 
-		textContent, ok := result.Content[0].(fantasy.TextContent)
+		textContent, ok := result.Content[0].(unillm.TextContent)
 		require.True(t, ok)
 		require.Equal(t, "Based on the search results [doc1], I found information.", textContent.Text)
 
-		sourceContent, ok := result.Content[1].(fantasy.SourceContent)
+		sourceContent, ok := result.Content[1].(unillm.SourceContent)
 		require.True(t, ok)
-		require.Equal(t, fantasy.SourceTypeURL, sourceContent.SourceType)
+		require.Equal(t, unillm.SourceTypeURL, sourceContent.SourceType)
 		require.Equal(t, "https://example.com/doc1.pdf", sourceContent.URL)
 		require.Equal(t, "Document 1", sourceContent.Title)
 		require.NotEmpty(t, sourceContent.ID)
@@ -1358,7 +1358,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-mini")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -1394,7 +1394,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-mini")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -1423,7 +1423,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt:           testPrompt,
 			Temperature:      &[]float64{0.5}[0],
 			TopP:             &[]float64{0.7}[0],
@@ -1452,7 +1452,7 @@ func TestDoGenerate(t *testing.T) {
 
 		// Should have warnings
 		require.Len(t, result.Warnings, 4)
-		require.Equal(t, fantasy.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
+		require.Equal(t, unillm.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
 		require.Equal(t, "temperature", result.Warnings[0].Setting)
 		require.Contains(t, result.Warnings[0].Details, "temperature is not supported for reasoning models")
 	})
@@ -1472,7 +1472,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt:          testPrompt,
 			MaxOutputTokens: &[]int64{1000}[0],
 		})
@@ -1517,7 +1517,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -1545,10 +1545,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				MaxCompletionTokens: fantasy.Opt(int64(255)),
+				MaxCompletionTokens: unillm.Opt(int64(255)),
 			}),
 		})
 
@@ -1584,7 +1584,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
 				Prediction: map[string]any{
@@ -1629,10 +1629,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				Store: fantasy.Opt(true),
+				Store: unillm.Opt(true),
 			}),
 		})
 
@@ -1668,7 +1668,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
 				Metadata: map[string]any{
@@ -1711,10 +1711,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				PromptCacheKey: fantasy.Opt("test-cache-key-123"),
+				PromptCacheKey: unillm.Opt("test-cache-key-123"),
 			}),
 		})
 
@@ -1750,10 +1750,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				SafetyIdentifier: fantasy.Opt("test-safety-identifier-123"),
+				SafetyIdentifier: unillm.Opt("test-safety-identifier-123"),
 			}),
 		})
 
@@ -1787,7 +1787,7 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-search-preview")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt:      testPrompt,
 			Temperature: &[]float64{0.7}[0],
 		})
@@ -1800,7 +1800,7 @@ func TestDoGenerate(t *testing.T) {
 		require.Nil(t, call.body["temperature"])
 
 		require.Len(t, result.Warnings, 1)
-		require.Equal(t, fantasy.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
+		require.Equal(t, unillm.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
 		require.Equal(t, "temperature", result.Warnings[0].Setting)
 		require.Contains(t, result.Warnings[0].Details, "search preview models")
 	})
@@ -1822,10 +1822,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o3-mini")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("flex"),
+				ServiceTier: unillm.Opt("flex"),
 			}),
 		})
 
@@ -1859,10 +1859,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-mini")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("flex"),
+				ServiceTier: unillm.Opt("flex"),
 			}),
 		})
 
@@ -1873,7 +1873,7 @@ func TestDoGenerate(t *testing.T) {
 		require.Nil(t, call.body["service_tier"])
 
 		require.Len(t, result.Warnings, 1)
-		require.Equal(t, fantasy.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
+		require.Equal(t, unillm.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
 		require.Equal(t, "ServiceTier", result.Warnings[0].Setting)
 		require.Contains(t, result.Warnings[0].Details, "flex processing is only available")
 	})
@@ -1893,10 +1893,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-mini")
 
-		_, err = model.Generate(context.Background(), fantasy.Call{
+		_, err = model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("priority"),
+				ServiceTier: unillm.Opt("priority"),
 			}),
 		})
 
@@ -1930,10 +1930,10 @@ func TestDoGenerate(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		result, err := model.Generate(context.Background(), fantasy.Call{
+		result, err := model.Generate(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("priority"),
+				ServiceTier: unillm.Opt("priority"),
 			}),
 		})
 
@@ -1944,7 +1944,7 @@ func TestDoGenerate(t *testing.T) {
 		require.Nil(t, call.body["service_tier"])
 
 		require.Len(t, result.Warnings, 1)
-		require.Equal(t, fantasy.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
+		require.Equal(t, unillm.CallWarningTypeUnsupportedSetting, result.Warnings[0].Type)
 		require.Equal(t, "ServiceTier", result.Warnings[0].Setting)
 		require.Contains(t, result.Warnings[0].Details, "priority processing is only available")
 	})
@@ -2197,14 +2197,14 @@ func (sms *streamingMockServer) prepareErrorStreamResponse() {
 	sms.chunks = chunks
 }
 
-func collectStreamParts(stream fantasy.StreamResponse) ([]fantasy.StreamPart, error) {
-	var parts []fantasy.StreamPart
+func collectStreamParts(stream unillm.StreamResponse) ([]unillm.StreamPart, error) {
+	var parts []unillm.StreamPart
 	for part := range stream {
 		parts = append(parts, part)
-		if part.Type == fantasy.StreamPartTypeError {
+		if part.Type == unillm.StreamPartTypeError {
 			break
 		}
-		if part.Type == fantasy.StreamPartTypeFinish {
+		if part.Type == unillm.StreamPartTypeFinish {
 			break
 		}
 	}
@@ -2238,7 +2238,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2256,13 +2256,13 @@ func TestDoStream(t *testing.T) {
 
 		for i, part := range parts {
 			switch part.Type {
-			case fantasy.StreamPartTypeTextStart:
+			case unillm.StreamPartTypeTextStart:
 				textStart = i
-			case fantasy.StreamPartTypeTextDelta:
+			case unillm.StreamPartTypeTextDelta:
 				deltas = append(deltas, part.Delta)
-			case fantasy.StreamPartTypeTextEnd:
+			case unillm.StreamPartTypeTextEnd:
 				textEnd = i
-			case fantasy.StreamPartTypeFinish:
+			case unillm.StreamPartTypeFinish:
 				finish = i
 			}
 		}
@@ -2274,7 +2274,7 @@ func TestDoStream(t *testing.T) {
 
 		// Check finish part
 		finishPart := parts[finish]
-		require.Equal(t, fantasy.FinishReasonStop, finishPart.FinishReason)
+		require.Equal(t, unillm.FinishReasonStop, finishPart.FinishReason)
 		require.Equal(t, int64(17), finishPart.Usage.InputTokens)
 		require.Equal(t, int64(227), finishPart.Usage.OutputTokens)
 		require.Equal(t, int64(244), finishPart.Usage.TotalTokens)
@@ -2295,10 +2295,10 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
-			Tools: []fantasy.Tool{
-				fantasy.FunctionTool{
+			Tools: []unillm.Tool{
+				unillm.FunctionTool{
 					Name: "test-tool",
 					InputSchema: map[string]any{
 						"type": "object",
@@ -2326,15 +2326,15 @@ func TestDoStream(t *testing.T) {
 
 		for i, part := range parts {
 			switch part.Type {
-			case fantasy.StreamPartTypeToolInputStart:
+			case unillm.StreamPartTypeToolInputStart:
 				toolInputStart = i
 				require.Equal(t, "call_O17Uplv4lJvD6DVdIvFFeRMw", part.ID)
 				require.Equal(t, "test-tool", part.ToolCallName)
-			case fantasy.StreamPartTypeToolInputDelta:
+			case unillm.StreamPartTypeToolInputDelta:
 				toolDeltas = append(toolDeltas, part.Delta)
-			case fantasy.StreamPartTypeToolInputEnd:
+			case unillm.StreamPartTypeToolInputEnd:
 				toolInputEnd = i
-			case fantasy.StreamPartTypeToolCall:
+			case unillm.StreamPartTypeToolCall:
 				toolCall = i
 				require.Equal(t, "call_O17Uplv4lJvD6DVdIvFFeRMw", part.ID)
 				require.Equal(t, "test-tool", part.ToolCallName)
@@ -2382,7 +2382,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2392,16 +2392,16 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 
 		// Find source part
-		var sourcePart *fantasy.StreamPart
+		var sourcePart *unillm.StreamPart
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeSource {
+			if part.Type == unillm.StreamPartTypeSource {
 				sourcePart = &part
 				break
 			}
 		}
 
 		require.NotNil(t, sourcePart)
-		require.Equal(t, fantasy.SourceTypeURL, sourcePart.SourceType)
+		require.Equal(t, unillm.SourceTypeURL, sourcePart.SourceType)
 		require.Equal(t, "https://example.com/doc1.pdf", sourcePart.URL)
 		require.Equal(t, "Document 1", sourcePart.Title)
 		require.NotEmpty(t, sourcePart.ID)
@@ -2422,7 +2422,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2435,9 +2435,9 @@ func TestDoStream(t *testing.T) {
 		require.True(t, len(parts) >= 1)
 
 		// Find error part
-		var errorPart *fantasy.StreamPart
+		var errorPart *unillm.StreamPart
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeError {
+			if part.Type == unillm.StreamPartTypeError {
 				errorPart = &part
 				break
 			}
@@ -2464,7 +2464,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Stream(context.Background(), fantasy.Call{
+		_, err = model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2513,7 +2513,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2523,9 +2523,9 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 
 		// Find finish part
-		var finishPart *fantasy.StreamPart
+		var finishPart *unillm.StreamPart
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeFinish {
+			if part.Type == unillm.StreamPartTypeFinish {
 				finishPart = &part
 				break
 			}
@@ -2564,7 +2564,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2574,9 +2574,9 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 
 		// Find finish part
-		var finishPart *fantasy.StreamPart
+		var finishPart *unillm.StreamPart
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeFinish {
+			if part.Type == unillm.StreamPartTypeFinish {
 				finishPart = &part
 				break
 			}
@@ -2608,10 +2608,10 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Stream(context.Background(), fantasy.Call{
+		_, err = model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				Store: fantasy.Opt(true),
+				Store: unillm.Opt(true),
 			}),
 		})
 
@@ -2651,7 +2651,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-3.5-turbo")
 
-		_, err = model.Stream(context.Background(), fantasy.Call{
+		_, err = model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
 				Metadata: map[string]any{
@@ -2698,10 +2698,10 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o3-mini")
 
-		_, err = model.Stream(context.Background(), fantasy.Call{
+		_, err = model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("flex"),
+				ServiceTier: unillm.Opt("flex"),
 			}),
 		})
 
@@ -2741,10 +2741,10 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "gpt-4o-mini")
 
-		_, err = model.Stream(context.Background(), fantasy.Call{
+		_, err = model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(&ProviderOptions{
-				ServiceTier: fantasy.Opt("priority"),
+				ServiceTier: unillm.Opt("priority"),
 			}),
 		})
 
@@ -2785,7 +2785,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2797,7 +2797,7 @@ func TestDoStream(t *testing.T) {
 		// Find text parts
 		var textDeltas []string
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeTextDelta {
+			if part.Type == unillm.StreamPartTypeTextDelta {
 				textDeltas = append(textDeltas, part.Delta)
 			}
 		}
@@ -2832,7 +2832,7 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 		model, _ := provider.LanguageModel(t.Context(), "o1-preview")
 
-		stream, err := model.Stream(context.Background(), fantasy.Call{
+		stream, err := model.Stream(context.Background(), unillm.Call{
 			Prompt: testPrompt,
 		})
 
@@ -2842,9 +2842,9 @@ func TestDoStream(t *testing.T) {
 		require.NoError(t, err)
 
 		// Find finish part
-		var finishPart *fantasy.StreamPart
+		var finishPart *unillm.StreamPart
 		for _, part := range parts {
-			if part.Type == fantasy.StreamPartTypeFinish {
+			if part.Type == unillm.StreamPartTypeFinish {
 				finishPart = &part
 				break
 			}

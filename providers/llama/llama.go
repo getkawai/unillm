@@ -1,6 +1,6 @@
-// Package llama provides an implementation of the fantasy AI SDK for local llama.cpp models.
+// Package llama provides an implementation of the unillm AI SDK for local llama.cpp models.
 // This provider handles text generation using llama.cpp.
-// For Vision-Language (VL) capabilities, use fantasy/providers/llama-vl.
+// For Vision-Language (VL) capabilities, use unillm/providers/llama-vl.
 package llama
 
 import (
@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/getkawai/unillm"
 	"github.com/getkawai/llamalib"
 	"github.com/getkawai/tools"
+	"github.com/getkawai/unillm"
 )
 
 const (
@@ -18,9 +18,9 @@ const (
 	Name = "llama"
 )
 
-// Provider extends fantasy.Provider with llama-specific capabilities.
+// Provider extends unillm.Provider with llama-specific capabilities.
 type Provider interface {
-	fantasy.Provider
+	unillm.Provider
 
 	// Resource management
 	GetService() *llamalib.Service
@@ -42,7 +42,7 @@ type options struct {
 type Option = func(*options)
 
 // New creates a new llama provider with the given options.
-// Returns Provider interface which extends fantasy.Provider.
+// Returns Provider interface which extends unillm.Provider.
 func New(opts ...Option) (Provider, error) {
 	providerOptions := options{
 		name: Name,
@@ -88,8 +88,8 @@ func WithModelPath(modelPath string) Option {
 	}
 }
 
-// LanguageModel implements fantasy.Provider.
-func (p *provider) LanguageModel(ctx context.Context, modelID string) (fantasy.LanguageModel, error) {
+// LanguageModel implements unillm.Provider.
+func (p *provider) LanguageModel(ctx context.Context, modelID string) (unillm.LanguageModel, error) {
 	// Wait for library initialization
 	if err := p.options.service.WaitForInitialization(ctx); err != nil {
 		return nil, fmt.Errorf("library initialization failed: %w", err)
@@ -119,7 +119,7 @@ func (p *provider) LanguageModel(ctx context.Context, modelID string) (fantasy.L
 	), nil
 }
 
-// Name implements fantasy.Provider.
+// Name implements unillm.Provider.
 func (p *provider) Name() string {
 	return p.options.name
 }

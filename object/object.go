@@ -22,14 +22,14 @@ import (
 //	    Ingredients []string `json:"ingredients"`
 //	}
 //
-//	result, err := object.Generate[Recipe](ctx, model, fantasy.ObjectCall{
-//	    Prompt: fantasy.Prompt{fantasy.NewUserMessage("Generate a lasagna recipe")},
+//	result, err := object.Generate[Recipe](ctx, model, unillm.ObjectCall{
+//	    Prompt: unillm.Prompt{unillm.NewUserMessage("Generate a lasagna recipe")},
 //	})
 func Generate[T any](
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	opts fantasy.ObjectCall,
-) (*fantasy.ObjectResult[T], error) {
+	model unillm.LanguageModel,
+	opts unillm.ObjectCall,
+) (*unillm.ObjectResult[T], error) {
 	var zero T
 	s := schema.Generate(reflect.TypeOf(zero))
 	opts.Schema = s
@@ -44,7 +44,7 @@ func Generate[T any](
 		return nil, fmt.Errorf("failed to unmarshal to %T: %w", result, err)
 	}
 
-	return &fantasy.ObjectResult[T]{
+	return &unillm.ObjectResult[T]{
 		Object:           result,
 		RawText:          resp.RawText,
 		Usage:            resp.Usage,
@@ -59,8 +59,8 @@ func Generate[T any](
 //
 // Example:
 //
-//	stream, err := object.Stream[Recipe](ctx, model, fantasy.ObjectCall{
-//	    Prompt: fantasy.Prompt{fantasy.NewUserMessage("Generate a lasagna recipe")},
+//	stream, err := object.Stream[Recipe](ctx, model, unillm.ObjectCall{
+//	    Prompt: unillm.Prompt{unillm.NewUserMessage("Generate a lasagna recipe")},
 //	})
 //
 //	for partial := range stream.PartialObjectStream() {
@@ -70,9 +70,9 @@ func Generate[T any](
 //	result, err := stream.Object()  // Wait for final result
 func Stream[T any](
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	opts fantasy.ObjectCall,
-) (*fantasy.StreamObjectResult[T], error) {
+	model unillm.LanguageModel,
+	opts unillm.ObjectCall,
+) (*unillm.StreamObjectResult[T], error) {
 	var zero T
 	s := schema.Generate(reflect.TypeOf(zero))
 	opts.Schema = s
@@ -82,7 +82,7 @@ func Stream[T any](
 		return nil, err
 	}
 
-	return fantasy.NewStreamObjectResult[T](ctx, stream), nil
+	return unillm.NewStreamObjectResult[T](ctx, stream), nil
 }
 
 // GenerateWithTool is a helper for providers without native JSON mode.
@@ -90,9 +90,9 @@ func Stream[T any](
 // and extracts the tool's input as the structured output.
 func GenerateWithTool(
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	call fantasy.ObjectCall,
-) (*fantasy.ObjectResponse, error) {
+	model unillm.LanguageModel,
+	call unillm.ObjectCall,
+) (*unillm.ObjectResponse, error) {
 	toolName := call.SchemaName
 	if toolName == "" {
 		toolName = "generate_object"
@@ -103,16 +103,16 @@ func GenerateWithTool(
 		toolDescription = "Generate a structured object matching the schema"
 	}
 
-	tool := fantasy.FunctionTool{
+	tool := unillm.FunctionTool{
 		Name:        toolName,
 		Description: toolDescription,
 		InputSchema: schema.ToMap(call.Schema),
 	}
 
-	toolChoice := fantasy.SpecificToolChoice(tool.Name)
-	resp, err := model.Generate(ctx, fantasy.Call{
+	toolChoice := unillm.SpecificToolChoice(tool.Name)
+	resp, err := model.Generate(ctx, unillm.Call{
 		Prompt:           call.Prompt,
-		Tools:            []fantasy.Tool{tool},
+		Tools:            []unillm.Tool{tool},
 		ToolChoice:       &toolChoice,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -128,7 +128,7 @@ func GenerateWithTool(
 
 	toolCalls := resp.Content.ToolCalls()
 	if len(toolCalls) == 0 {
-		return nil, &fantasy.NoObjectGeneratedError{
+		return nil, &unillm.NoObjectGeneratedError{
 			RawText:      resp.Content.Text(),
 			ParseError:   fmt.Errorf("no tool call generated"),
 			Usage:        resp.Usage,
@@ -146,14 +146,14 @@ func GenerateWithTool(
 	}
 
 	if err != nil {
-		if nogErr, ok := err.(*fantasy.NoObjectGeneratedError); ok {
+		if nogErr, ok := err.(*unillm.NoObjectGeneratedError); ok {
 			nogErr.Usage = resp.Usage
 			nogErr.FinishReason = resp.FinishReason
 		}
 		return nil, err
 	}
 
-	return &fantasy.ObjectResponse{
+	return &unillm.ObjectResponse{
 		Object:           obj,
 		RawText:          toolCall.Input,
 		Usage:            resp.Usage,
@@ -168,9 +168,9 @@ func GenerateWithTool(
 // This is a fallback for older models or simple providers.
 func GenerateWithText(
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	call fantasy.ObjectCall,
-) (*fantasy.ObjectResponse, error) {
+	model unillm.LanguageModel,
+	call unillm.ObjectCall,
+) (*unillm.ObjectResponse, error) {
 	jsonSchemaBytes, err := json.Marshal(call.Schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal schema: %w", err)
@@ -182,29 +182,29 @@ func GenerateWithText(
 		string(jsonSchemaBytes),
 	)
 
-	enhancedPrompt := make(fantasy.Prompt, 0, len(call.Prompt)+1)
+	enhancedPrompt := make(unillm.Prompt, 0, len(call.Prompt)+1)
 
 	hasSystem := false
 	for _, msg := range call.Prompt {
-		if msg.Role == fantasy.MessageRoleSystem {
+		if msg.Role == unillm.MessageRoleSystem {
 			hasSystem = true
 			existingText := ""
 			if len(msg.Content) > 0 {
-				if textPart, ok := msg.Content[0].(fantasy.TextPart); ok {
+				if textPart, ok := msg.Content[0].(unillm.TextPart); ok {
 					existingText = textPart.Text
 				}
 			}
-			enhancedPrompt = append(enhancedPrompt, fantasy.NewSystemMessage(existingText+"\n\n"+schemaInstruction))
+			enhancedPrompt = append(enhancedPrompt, unillm.NewSystemMessage(existingText+"\n\n"+schemaInstruction))
 		} else {
 			enhancedPrompt = append(enhancedPrompt, msg)
 		}
 	}
 
 	if !hasSystem {
-		enhancedPrompt = append(fantasy.Prompt{fantasy.NewSystemMessage(schemaInstruction)}, call.Prompt...)
+		enhancedPrompt = append(unillm.Prompt{unillm.NewSystemMessage(schemaInstruction)}, call.Prompt...)
 	}
 
-	resp, err := model.Generate(ctx, fantasy.Call{
+	resp, err := model.Generate(ctx, unillm.Call{
 		Prompt:           enhancedPrompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -220,7 +220,7 @@ func GenerateWithText(
 
 	textContent := resp.Content.Text()
 	if textContent == "" {
-		return nil, &fantasy.NoObjectGeneratedError{
+		return nil, &unillm.NoObjectGeneratedError{
 			RawText:      "",
 			ParseError:   fmt.Errorf("no text content in response"),
 			Usage:        resp.Usage,
@@ -237,7 +237,7 @@ func GenerateWithText(
 
 	if err != nil {
 		if nogErr, ok := err.(*schema.ParseError); ok {
-			return nil, &fantasy.NoObjectGeneratedError{
+			return nil, &unillm.NoObjectGeneratedError{
 				RawText:         nogErr.RawText,
 				ParseError:      nogErr.ParseError,
 				ValidationError: nogErr.ValidationError,
@@ -248,7 +248,7 @@ func GenerateWithText(
 		return nil, err
 	}
 
-	return &fantasy.ObjectResponse{
+	return &unillm.ObjectResponse{
 		Object:           obj,
 		RawText:          textContent,
 		Usage:            resp.Usage,
@@ -262,9 +262,9 @@ func GenerateWithText(
 // It uses streaming tool calls to extract and parse the structured output progressively.
 func StreamWithTool(
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	call fantasy.ObjectCall,
-) (fantasy.ObjectStreamResponse, error) {
+	model unillm.LanguageModel,
+	call unillm.ObjectCall,
+) (unillm.ObjectStreamResponse, error) {
 	// Create a tool from the schema
 	toolName := call.SchemaName
 	if toolName == "" {
@@ -276,17 +276,17 @@ func StreamWithTool(
 		toolDescription = "Generate a structured object matching the schema"
 	}
 
-	tool := fantasy.FunctionTool{
+	tool := unillm.FunctionTool{
 		Name:        toolName,
 		Description: toolDescription,
 		InputSchema: schema.ToMap(call.Schema),
 	}
 
 	// Make a streaming Generate call with forced tool choice
-	toolChoice := fantasy.SpecificToolChoice(tool.Name)
-	stream, err := model.Stream(ctx, fantasy.Call{
+	toolChoice := unillm.SpecificToolChoice(tool.Name)
+	stream, err := model.Stream(ctx, unillm.Call{
 		Prompt:           call.Prompt,
-		Tools:            []fantasy.Tool{tool},
+		Tools:            []unillm.Tool{tool},
 		ToolChoice:       &toolChoice,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -301,18 +301,18 @@ func StreamWithTool(
 	}
 
 	// Convert the text stream to object stream parts
-	return func(yield func(fantasy.ObjectStreamPart) bool) {
+	return func(yield func(unillm.ObjectStreamPart) bool) {
 		var accumulated string
 		var lastParsedObject any
-		var usage fantasy.Usage
-		var finishReason fantasy.FinishReason
-		var warnings []fantasy.CallWarning
-		var providerMetadata fantasy.ProviderMetadata
+		var usage unillm.Usage
+		var finishReason unillm.FinishReason
+		var warnings []unillm.CallWarning
+		var providerMetadata unillm.ProviderMetadata
 		var streamErr error
 
 		for part := range stream {
 			switch part.Type {
-			case fantasy.StreamPartTypeTextDelta:
+			case unillm.StreamPartTypeTextDelta:
 				accumulated += part.Delta
 
 				obj, state, parseErr := schema.ParsePartialJSON(accumulated)
@@ -320,8 +320,8 @@ func StreamWithTool(
 				if state == schema.ParseStateSuccessful || state == schema.ParseStateRepaired {
 					if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 						if !reflect.DeepEqual(obj, lastParsedObject) {
-							if !yield(fantasy.ObjectStreamPart{
-								Type:   fantasy.ObjectStreamPartTypeObject,
+							if !yield(unillm.ObjectStreamPart{
+								Type:   unillm.ObjectStreamPartTypeObject,
 								Object: obj,
 							}) {
 								return
@@ -338,8 +338,8 @@ func StreamWithTool(
 						if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 							schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 							if !reflect.DeepEqual(obj2, lastParsedObject) {
-								if !yield(fantasy.ObjectStreamPart{
-									Type:   fantasy.ObjectStreamPartTypeObject,
+								if !yield(unillm.ObjectStreamPart{
+									Type:   unillm.ObjectStreamPartTypeObject,
 									Object: obj2,
 								}) {
 									return
@@ -350,15 +350,15 @@ func StreamWithTool(
 					}
 				}
 
-			case fantasy.StreamPartTypeToolInputDelta:
+			case unillm.StreamPartTypeToolInputDelta:
 				accumulated += part.Delta
 
 				obj, state, parseErr := schema.ParsePartialJSON(accumulated)
 				if state == schema.ParseStateSuccessful || state == schema.ParseStateRepaired {
 					if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 						if !reflect.DeepEqual(obj, lastParsedObject) {
-							if !yield(fantasy.ObjectStreamPart{
-								Type:   fantasy.ObjectStreamPartTypeObject,
+							if !yield(unillm.ObjectStreamPart{
+								Type:   unillm.ObjectStreamPartTypeObject,
 								Object: obj,
 							}) {
 								return
@@ -375,8 +375,8 @@ func StreamWithTool(
 						if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 							schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 							if !reflect.DeepEqual(obj2, lastParsedObject) {
-								if !yield(fantasy.ObjectStreamPart{
-									Type:   fantasy.ObjectStreamPartTypeObject,
+								if !yield(unillm.ObjectStreamPart{
+									Type:   unillm.ObjectStreamPartTypeObject,
 									Object: obj2,
 								}) {
 									return
@@ -387,7 +387,7 @@ func StreamWithTool(
 					}
 				}
 
-			case fantasy.StreamPartTypeToolCall:
+			case unillm.StreamPartTypeToolCall:
 				toolInput := part.ToolCallInput
 
 				var obj any
@@ -400,8 +400,8 @@ func StreamWithTool(
 
 				if err == nil {
 					if !reflect.DeepEqual(obj, lastParsedObject) {
-						if !yield(fantasy.ObjectStreamPart{
-							Type:   fantasy.ObjectStreamPartTypeObject,
+						if !yield(unillm.ObjectStreamPart{
+							Type:   unillm.ObjectStreamPartTypeObject,
 							Object: obj,
 						}) {
 							return
@@ -410,20 +410,20 @@ func StreamWithTool(
 					}
 				}
 
-			case fantasy.StreamPartTypeError:
+			case unillm.StreamPartTypeError:
 				streamErr = part.Error
-				if !yield(fantasy.ObjectStreamPart{
-					Type:  fantasy.ObjectStreamPartTypeError,
+				if !yield(unillm.ObjectStreamPart{
+					Type:  unillm.ObjectStreamPartTypeError,
 					Error: part.Error,
 				}) {
 					return
 				}
 
-			case fantasy.StreamPartTypeFinish:
+			case unillm.StreamPartTypeFinish:
 				usage = part.Usage
 				finishReason = part.FinishReason
 
-			case fantasy.StreamPartTypeWarnings:
+			case unillm.StreamPartTypeWarnings:
 				warnings = part.Warnings
 			}
 
@@ -433,17 +433,17 @@ func StreamWithTool(
 		}
 
 		if streamErr == nil && lastParsedObject != nil {
-			yield(fantasy.ObjectStreamPart{
-				Type:             fantasy.ObjectStreamPartTypeFinish,
+			yield(unillm.ObjectStreamPart{
+				Type:             unillm.ObjectStreamPartTypeFinish,
 				Usage:            usage,
 				FinishReason:     finishReason,
 				Warnings:         warnings,
 				ProviderMetadata: providerMetadata,
 			})
 		} else if streamErr == nil && lastParsedObject == nil {
-			yield(fantasy.ObjectStreamPart{
-				Type: fantasy.ObjectStreamPartTypeError,
-				Error: &fantasy.NoObjectGeneratedError{
+			yield(unillm.ObjectStreamPart{
+				Type: unillm.ObjectStreamPartTypeError,
+				Error: &unillm.NoObjectGeneratedError{
 					RawText:      accumulated,
 					ParseError:   fmt.Errorf("no valid object generated in stream"),
 					Usage:        usage,
@@ -458,9 +458,9 @@ func StreamWithTool(
 // It adds the schema to the system prompt and parses the streamed text as JSON progressively.
 func StreamWithText(
 	ctx context.Context,
-	model fantasy.LanguageModel,
-	call fantasy.ObjectCall,
-) (fantasy.ObjectStreamResponse, error) {
+	model unillm.LanguageModel,
+	call unillm.ObjectCall,
+) (unillm.ObjectStreamResponse, error) {
 	jsonSchemaMap := schema.ToMap(call.Schema)
 	jsonSchemaBytes, err := json.Marshal(jsonSchemaMap)
 	if err != nil {
@@ -473,29 +473,29 @@ func StreamWithText(
 		string(jsonSchemaBytes),
 	)
 
-	enhancedPrompt := make(fantasy.Prompt, 0, len(call.Prompt)+1)
+	enhancedPrompt := make(unillm.Prompt, 0, len(call.Prompt)+1)
 
 	hasSystem := false
 	for _, msg := range call.Prompt {
-		if msg.Role == fantasy.MessageRoleSystem {
+		if msg.Role == unillm.MessageRoleSystem {
 			hasSystem = true
 			existingText := ""
 			if len(msg.Content) > 0 {
-				if textPart, ok := msg.Content[0].(fantasy.TextPart); ok {
+				if textPart, ok := msg.Content[0].(unillm.TextPart); ok {
 					existingText = textPart.Text
 				}
 			}
-			enhancedPrompt = append(enhancedPrompt, fantasy.NewSystemMessage(existingText+"\n\n"+schemaInstruction))
+			enhancedPrompt = append(enhancedPrompt, unillm.NewSystemMessage(existingText+"\n\n"+schemaInstruction))
 		} else {
 			enhancedPrompt = append(enhancedPrompt, msg)
 		}
 	}
 
 	if !hasSystem {
-		enhancedPrompt = append(fantasy.Prompt{fantasy.NewSystemMessage(schemaInstruction)}, call.Prompt...)
+		enhancedPrompt = append(unillm.Prompt{unillm.NewSystemMessage(schemaInstruction)}, call.Prompt...)
 	}
 
-	stream, err := model.Stream(ctx, fantasy.Call{
+	stream, err := model.Stream(ctx, unillm.Call{
 		Prompt:           enhancedPrompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -509,18 +509,18 @@ func StreamWithText(
 		return nil, fmt.Errorf("text-based streaming failed: %w", err)
 	}
 
-	return func(yield func(fantasy.ObjectStreamPart) bool) {
+	return func(yield func(unillm.ObjectStreamPart) bool) {
 		var accumulated string
 		var lastParsedObject any
-		var usage fantasy.Usage
-		var finishReason fantasy.FinishReason
-		var warnings []fantasy.CallWarning
-		var providerMetadata fantasy.ProviderMetadata
+		var usage unillm.Usage
+		var finishReason unillm.FinishReason
+		var warnings []unillm.CallWarning
+		var providerMetadata unillm.ProviderMetadata
 		var streamErr error
 
 		for part := range stream {
 			switch part.Type {
-			case fantasy.StreamPartTypeTextDelta:
+			case unillm.StreamPartTypeTextDelta:
 				accumulated += part.Delta
 
 				obj, state, parseErr := schema.ParsePartialJSON(accumulated)
@@ -528,8 +528,8 @@ func StreamWithText(
 				if state == schema.ParseStateSuccessful || state == schema.ParseStateRepaired {
 					if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 						if !reflect.DeepEqual(obj, lastParsedObject) {
-							if !yield(fantasy.ObjectStreamPart{
-								Type:   fantasy.ObjectStreamPartTypeObject,
+							if !yield(unillm.ObjectStreamPart{
+								Type:   unillm.ObjectStreamPartTypeObject,
 								Object: obj,
 							}) {
 								return
@@ -546,8 +546,8 @@ func StreamWithText(
 						if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 							schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 							if !reflect.DeepEqual(obj2, lastParsedObject) {
-								if !yield(fantasy.ObjectStreamPart{
-									Type:   fantasy.ObjectStreamPartTypeObject,
+								if !yield(unillm.ObjectStreamPart{
+									Type:   unillm.ObjectStreamPartTypeObject,
 									Object: obj2,
 								}) {
 									return
@@ -558,20 +558,20 @@ func StreamWithText(
 					}
 				}
 
-			case fantasy.StreamPartTypeError:
+			case unillm.StreamPartTypeError:
 				streamErr = part.Error
-				if !yield(fantasy.ObjectStreamPart{
-					Type:  fantasy.ObjectStreamPartTypeError,
+				if !yield(unillm.ObjectStreamPart{
+					Type:  unillm.ObjectStreamPartTypeError,
 					Error: part.Error,
 				}) {
 					return
 				}
 
-			case fantasy.StreamPartTypeFinish:
+			case unillm.StreamPartTypeFinish:
 				usage = part.Usage
 				finishReason = part.FinishReason
 
-			case fantasy.StreamPartTypeWarnings:
+			case unillm.StreamPartTypeWarnings:
 				warnings = part.Warnings
 			}
 
@@ -581,17 +581,17 @@ func StreamWithText(
 		}
 
 		if streamErr == nil && lastParsedObject != nil {
-			yield(fantasy.ObjectStreamPart{
-				Type:             fantasy.ObjectStreamPartTypeFinish,
+			yield(unillm.ObjectStreamPart{
+				Type:             unillm.ObjectStreamPartTypeFinish,
 				Usage:            usage,
 				FinishReason:     finishReason,
 				Warnings:         warnings,
 				ProviderMetadata: providerMetadata,
 			})
 		} else if streamErr == nil && lastParsedObject == nil {
-			yield(fantasy.ObjectStreamPart{
-				Type: fantasy.ObjectStreamPartTypeError,
-				Error: &fantasy.NoObjectGeneratedError{
+			yield(unillm.ObjectStreamPart{
+				Type: unillm.ObjectStreamPartTypeError,
+				Error: &unillm.NoObjectGeneratedError{
 					RawText:      accumulated,
 					ParseError:   fmt.Errorf("no valid object generated in stream"),
 					Usage:        usage,

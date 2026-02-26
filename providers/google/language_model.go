@@ -16,33 +16,33 @@ import (
 	"google.golang.org/genai"
 )
 
-// languageModel implements fantasy.LanguageModel for Google's language models.
+// languageModel implements unillm.LanguageModel for Google's language models.
 type languageModel struct {
 	provider        string
 	modelID         string
 	client          *genai.Client
 	providerOptions options
-	objectMode      fantasy.ObjectMode
+	objectMode      unillm.ObjectMode
 }
 
-// Model implements fantasy.LanguageModel.
+// Model implements unillm.LanguageModel.
 func (g *languageModel) Model() string {
 	return g.modelID
 }
 
-// Provider implements fantasy.LanguageModel.
+// Provider implements unillm.LanguageModel.
 func (g *languageModel) Provider() string {
 	return g.provider
 }
 
-func (g languageModel) prepareParams(call fantasy.Call) (*genai.GenerateContentConfig, []*genai.Content, []fantasy.CallWarning, error) {
+func (g languageModel) prepareParams(call unillm.Call) (*genai.GenerateContentConfig, []*genai.Content, []unillm.CallWarning, error) {
 	config := &genai.GenerateContentConfig{}
 
 	providerOptions := &ProviderOptions{}
 	if v, ok := call.ProviderOptions[Name]; ok {
 		providerOptions, ok = v.(*ProviderOptions)
 		if !ok {
-			return nil, nil, nil, &fantasy.Error{Title: "invalid argument", Message: "google provider options should be *google.ProviderOptions"}
+			return nil, nil, nil, &unillm.Error{Title: "invalid argument", Message: "google provider options should be *google.ProviderOptions"}
 		}
 	}
 
@@ -52,8 +52,8 @@ func (g languageModel) prepareParams(call fantasy.Call) (*genai.GenerateContentC
 		if providerOptions.ThinkingConfig.IncludeThoughts != nil &&
 			*providerOptions.ThinkingConfig.IncludeThoughts &&
 			g.providerOptions.backend != genai.BackendVertexAI {
-			warnings = append(warnings, fantasy.CallWarning{
-				Type: fantasy.CallWarningTypeOther,
+			warnings = append(warnings, unillm.CallWarning{
+				Type: unillm.CallWarningTypeOther,
 				Message: "The 'includeThoughts' option is only supported with the Google Vertex AI backend " +
 					"and might not be supported or could behave unexpectedly with the current backend " +
 					fmt.Sprintf("(backend: %v)", g.providerOptions.backend),
@@ -62,11 +62,11 @@ func (g languageModel) prepareParams(call fantasy.Call) (*genai.GenerateContentC
 
 		if providerOptions.ThinkingConfig.ThinkingBudget != nil &&
 			*providerOptions.ThinkingConfig.ThinkingBudget < 128 {
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeOther,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeOther,
 				Message: "The 'thinking_budget' option can not be under 128 and will be set to 128 by default",
 			})
-			providerOptions.ThinkingConfig.ThinkingBudget = fantasy.Opt(int64(128))
+			providerOptions.ThinkingConfig.ThinkingBudget = unillm.Opt(int64(128))
 		}
 	}
 
@@ -146,7 +146,7 @@ func (g languageModel) prepareParams(call fantasy.Call) (*genai.GenerateContentC
 
 	return config, content, warnings, nil
 }
-func (g *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fantasy.Response, error) {
+func (g *languageModel) Generate(ctx context.Context, call unillm.Call) (*unillm.Response, error) {
 	config, contents, warnings, err := g.prepareParams(call)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func (g *languageModel) Generate(ctx context.Context, call fantasy.Call) (*fanta
 	return g.mapResponse(response, warnings)
 }
 
-func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.StreamResponse, error) {
+func (g *languageModel) Stream(ctx context.Context, call unillm.Call) (unillm.StreamResponse, error) {
 	config, contents, warnings, err := g.prepareParams(call)
 	if err != nil {
 		return nil, err
@@ -186,10 +186,10 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 		return nil, err
 	}
 
-	return func(yield func(fantasy.StreamPart) bool) {
+	return func(yield func(unillm.StreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.StreamPart{
-				Type:     fantasy.StreamPartTypeWarnings,
+			if !yield(unillm.StreamPart{
+				Type:     unillm.StreamPartTypeWarnings,
 				Warnings: warnings,
 			}) {
 				return
@@ -197,19 +197,19 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 		}
 
 		var currentContent string
-		var toolCalls []fantasy.ToolCallContent
+		var toolCalls []unillm.ToolCallContent
 		var isActiveText bool
 		var isActiveReasoning bool
 		var blockCounter int
 		var currentTextBlockID string
 		var currentReasoningBlockID string
-		var usage *fantasy.Usage
-		var lastFinishReason fantasy.FinishReason
+		var usage *unillm.Usage
+		var lastFinishReason unillm.FinishReason
 
 		for resp, err := range chat.SendMessageStream(ctx, depointerSlice(lastMessage.Parts)...) {
 			if err != nil {
-				yield(fantasy.StreamPart{
-					Type:  fantasy.StreamPartTypeError,
+				yield(unillm.StreamPart{
+					Type:  unillm.StreamPartTypeError,
 					Error: toProviderErr(err),
 				})
 				return
@@ -226,8 +226,8 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 								// End any active text block before starting reasoning
 								if isActiveText {
 									isActiveText = false
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeTextEnd,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeTextEnd,
 										ID:   currentTextBlockID,
 									}) {
 										return
@@ -239,16 +239,16 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 									isActiveReasoning = true
 									currentReasoningBlockID = fmt.Sprintf("%d", blockCounter)
 									blockCounter++
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeReasoningStart,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeReasoningStart,
 										ID:   currentReasoningBlockID,
 									}) {
 										return
 									}
 								}
 
-								if !yield(fantasy.StreamPart{
-									Type:  fantasy.StreamPartTypeReasoningDelta,
+								if !yield(unillm.StreamPart{
+									Type:  unillm.StreamPartTypeReasoningDelta,
 									ID:    currentReasoningBlockID,
 									Delta: delta,
 								}) {
@@ -260,8 +260,8 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 									isActiveText = true
 									currentTextBlockID = fmt.Sprintf("%d", blockCounter)
 									blockCounter++
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeTextStart,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeTextStart,
 										ID:   currentTextBlockID,
 									}) {
 										return
@@ -273,10 +273,10 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 									metadata := &ReasoningMetadata{
 										Signature: string(part.ThoughtSignature),
 									}
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeReasoningEnd,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeReasoningEnd,
 										ID:   currentReasoningBlockID,
-										ProviderMetadata: fantasy.ProviderMetadata{
+										ProviderMetadata: unillm.ProviderMetadata{
 											Name: metadata,
 										},
 									}) {
@@ -287,16 +287,16 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 										Signature: string(part.ThoughtSignature),
 									}
 
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeReasoningStart,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeReasoningStart,
 										ID:   currentReasoningBlockID,
 									}) {
 										return
 									}
-									if !yield(fantasy.StreamPart{
-										Type: fantasy.StreamPartTypeReasoningEnd,
+									if !yield(unillm.StreamPart{
+										Type: unillm.StreamPartTypeReasoningEnd,
 										ID:   currentReasoningBlockID,
-										ProviderMetadata: fantasy.ProviderMetadata{
+										ProviderMetadata: unillm.ProviderMetadata{
 											Name: metadata,
 										},
 									}) {
@@ -304,8 +304,8 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 									}
 								}
 
-								if !yield(fantasy.StreamPart{
-									Type:  fantasy.StreamPartTypeTextDelta,
+								if !yield(unillm.StreamPart{
+									Type:  unillm.StreamPartTypeTextDelta,
 									ID:    currentTextBlockID,
 									Delta: delta,
 								}) {
@@ -318,8 +318,8 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 						// End any active text or reasoning blocks
 						if isActiveText {
 							isActiveText = false
-							if !yield(fantasy.StreamPart{
-								Type: fantasy.StreamPartTypeTextEnd,
+							if !yield(unillm.StreamPart{
+								Type: unillm.StreamPartTypeTextEnd,
 								ID:   currentTextBlockID,
 							}) {
 								return
@@ -333,10 +333,10 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 								Signature: string(part.ThoughtSignature),
 								ToolID:    toolCallID,
 							}
-							if !yield(fantasy.StreamPart{
-								Type: fantasy.StreamPartTypeReasoningEnd,
+							if !yield(unillm.StreamPart{
+								Type: unillm.StreamPartTypeReasoningEnd,
 								ID:   currentReasoningBlockID,
-								ProviderMetadata: fantasy.ProviderMetadata{
+								ProviderMetadata: unillm.ProviderMetadata{
 									Name: metadata,
 								},
 							}) {
@@ -348,16 +348,16 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 								ToolID:    toolCallID,
 							}
 
-							if !yield(fantasy.StreamPart{
-								Type: fantasy.StreamPartTypeReasoningStart,
+							if !yield(unillm.StreamPart{
+								Type: unillm.StreamPartTypeReasoningStart,
 								ID:   currentReasoningBlockID,
 							}) {
 								return
 							}
-							if !yield(fantasy.StreamPart{
-								Type: fantasy.StreamPartTypeReasoningEnd,
+							if !yield(unillm.StreamPart{
+								Type: unillm.StreamPartTypeReasoningEnd,
 								ID:   currentReasoningBlockID,
-								ProviderMetadata: fantasy.ProviderMetadata{
+								ProviderMetadata: unillm.ProviderMetadata{
 									Name: metadata,
 								},
 							}) {
@@ -366,38 +366,38 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 						}
 						args, err := json.Marshal(part.FunctionCall.Args)
 						if err != nil {
-							yield(fantasy.StreamPart{
-								Type:  fantasy.StreamPartTypeError,
+							yield(unillm.StreamPart{
+								Type:  unillm.StreamPartTypeError,
 								Error: err,
 							})
 							return
 						}
 
-						if !yield(fantasy.StreamPart{
-							Type:         fantasy.StreamPartTypeToolInputStart,
+						if !yield(unillm.StreamPart{
+							Type:         unillm.StreamPartTypeToolInputStart,
 							ID:           toolCallID,
 							ToolCallName: part.FunctionCall.Name,
 						}) {
 							return
 						}
 
-						if !yield(fantasy.StreamPart{
-							Type:  fantasy.StreamPartTypeToolInputDelta,
+						if !yield(unillm.StreamPart{
+							Type:  unillm.StreamPartTypeToolInputDelta,
 							ID:    toolCallID,
 							Delta: string(args),
 						}) {
 							return
 						}
 
-						if !yield(fantasy.StreamPart{
-							Type: fantasy.StreamPartTypeToolInputEnd,
+						if !yield(unillm.StreamPart{
+							Type: unillm.StreamPartTypeToolInputEnd,
 							ID:   toolCallID,
 						}) {
 							return
 						}
 
-						if !yield(fantasy.StreamPart{
-							Type:             fantasy.StreamPartTypeToolCall,
+						if !yield(unillm.StreamPart{
+							Type:             unillm.StreamPartTypeToolCall,
 							ID:               toolCallID,
 							ToolCallName:     part.FunctionCall.Name,
 							ToolCallInput:    string(args),
@@ -406,7 +406,7 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 							return
 						}
 
-						toolCalls = append(toolCalls, fantasy.ToolCallContent{
+						toolCalls = append(toolCalls, unillm.ToolCallContent{
 							ToolCallID:       toolCallID,
 							ToolName:         part.FunctionCall.Name,
 							Input:            string(args),
@@ -436,16 +436,16 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 
 		// Close any open blocks before finishing
 		if isActiveText {
-			if !yield(fantasy.StreamPart{
-				Type: fantasy.StreamPartTypeTextEnd,
+			if !yield(unillm.StreamPart{
+				Type: unillm.StreamPartTypeTextEnd,
 				ID:   currentTextBlockID,
 			}) {
 				return
 			}
 		}
 		if isActiveReasoning {
-			if !yield(fantasy.StreamPart{
-				Type: fantasy.StreamPartTypeReasoningEnd,
+			if !yield(unillm.StreamPart{
+				Type: unillm.StreamPartTypeReasoningEnd,
 				ID:   currentReasoningBlockID,
 			}) {
 				return
@@ -454,48 +454,48 @@ func (g *languageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.
 
 		finishReason := lastFinishReason
 		if len(toolCalls) > 0 {
-			finishReason = fantasy.FinishReasonToolCalls
+			finishReason = unillm.FinishReasonToolCalls
 		} else if finishReason == "" {
-			finishReason = fantasy.FinishReasonStop
+			finishReason = unillm.FinishReasonStop
 		}
 
-		yield(fantasy.StreamPart{
-			Type:         fantasy.StreamPartTypeFinish,
+		yield(unillm.StreamPart{
+			Type:         unillm.StreamPartTypeFinish,
 			Usage:        *usage,
 			FinishReason: finishReason,
 		})
 	}, nil
 }
 
-func (g *languageModel) GenerateObject(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+func (g *languageModel) GenerateObject(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	switch g.objectMode {
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.GenerateWithText(ctx, g, call)
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.GenerateWithTool(ctx, g, call)
 	default:
 		return g.generateObjectWithJSONMode(ctx, call)
 	}
 }
 
-// StreamObject implements fantasy.LanguageModel.
-func (g *languageModel) StreamObject(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+// StreamObject implements unillm.LanguageModel.
+func (g *languageModel) StreamObject(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	switch g.objectMode {
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.StreamWithTool(ctx, g, call)
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.StreamWithText(ctx, g, call)
 	default:
 		return g.streamObjectWithJSONMode(ctx, call)
 	}
 }
 
-func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	// Convert our Schema to Google's JSON Schema format
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
 	// Build request using prepareParams
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -537,7 +537,7 @@ func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call fan
 
 	jsonText := mappedResponse.Content.Text()
 	if jsonText == "" {
-		return nil, &fantasy.NoObjectGeneratedError{
+		return nil, &unillm.NoObjectGeneratedError{
 			RawText:      "",
 			ParseError:   fmt.Errorf("no text content in response"),
 			Usage:        mappedResponse.Usage,
@@ -555,14 +555,14 @@ func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call fan
 
 	if err != nil {
 		// Add usage info to error
-		if nogErr, ok := err.(*fantasy.NoObjectGeneratedError); ok {
+		if nogErr, ok := err.(*unillm.NoObjectGeneratedError); ok {
 			nogErr.Usage = mappedResponse.Usage
 			nogErr.FinishReason = mappedResponse.FinishReason
 		}
 		return nil, err
 	}
 
-	return &fantasy.ObjectResponse{
+	return &unillm.ObjectResponse{
 		Object:           obj,
 		RawText:          jsonText,
 		Usage:            mappedResponse.Usage,
@@ -572,12 +572,12 @@ func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call fan
 	}, nil
 }
 
-func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	// Convert our Schema to Google's JSON Schema format
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
 	// Build request using prepareParams
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -607,10 +607,10 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 		return nil, err
 	}
 
-	return func(yield func(fantasy.ObjectStreamPart) bool) {
+	return func(yield func(unillm.ObjectStreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.ObjectStreamPart{
-				Type:     fantasy.ObjectStreamPartTypeObject,
+			if !yield(unillm.ObjectStreamPart{
+				Type:     unillm.ObjectStreamPartTypeObject,
 				Warnings: warnings,
 			}) {
 				return
@@ -619,15 +619,15 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 
 		var accumulated string
 		var lastParsedObject any
-		var usage *fantasy.Usage
-		var lastFinishReason fantasy.FinishReason
+		var usage *unillm.Usage
+		var lastFinishReason unillm.FinishReason
 		var streamErr error
 
 		for resp, err := range chat.SendMessageStream(ctx, depointerSlice(lastMessage.Parts)...) {
 			if err != nil {
 				streamErr = toProviderErr(err)
-				yield(fantasy.ObjectStreamPart{
-					Type:  fantasy.ObjectStreamPartTypeError,
+				yield(unillm.ObjectStreamPart{
+					Type:  unillm.ObjectStreamPartTypeError,
 					Error: streamErr,
 				})
 				return
@@ -646,8 +646,8 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 							if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 								// Only emit if object is different from last
 								if !reflect.DeepEqual(obj, lastParsedObject) {
-									if !yield(fantasy.ObjectStreamPart{
-										Type:   fantasy.ObjectStreamPartTypeObject,
+									if !yield(unillm.ObjectStreamPart{
+										Type:   unillm.ObjectStreamPartTypeObject,
 										Object: obj,
 									}) {
 										return
@@ -665,8 +665,8 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 								if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 									schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 									if !reflect.DeepEqual(obj2, lastParsedObject) {
-										if !yield(fantasy.ObjectStreamPart{
-											Type:   fantasy.ObjectStreamPartTypeObject,
+										if !yield(unillm.ObjectStreamPart{
+											Type:   unillm.ObjectStreamPartTypeObject,
 											Object: obj2,
 										}) {
 											return
@@ -701,23 +701,23 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 		if streamErr == nil && lastParsedObject != nil {
 			finishReason := lastFinishReason
 			if finishReason == "" {
-				finishReason = fantasy.FinishReasonStop
+				finishReason = unillm.FinishReasonStop
 			}
 
-			yield(fantasy.ObjectStreamPart{
-				Type:         fantasy.ObjectStreamPartTypeFinish,
+			yield(unillm.ObjectStreamPart{
+				Type:         unillm.ObjectStreamPartTypeFinish,
 				Usage:        *usage,
 				FinishReason: finishReason,
 			})
 		} else if streamErr == nil && lastParsedObject == nil {
 			// No object was generated
-			finalUsage := fantasy.Usage{}
+			finalUsage := unillm.Usage{}
 			if usage != nil {
 				finalUsage = *usage
 			}
-			yield(fantasy.ObjectStreamPart{
-				Type: fantasy.ObjectStreamPartTypeError,
-				Error: &fantasy.NoObjectGeneratedError{
+			yield(unillm.ObjectStreamPart{
+				Type: unillm.ObjectStreamPartTypeError,
+				Error: &unillm.NoObjectGeneratedError{
 					RawText:      accumulated,
 					ParseError:   fmt.Errorf("no valid object generated in stream"),
 					Usage:        finalUsage,
@@ -727,14 +727,14 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call fanta
 		}
 	}, nil
 }
-func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warnings []fantasy.CallWarning) (*fantasy.Response, error) {
+func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warnings []unillm.CallWarning) (*unillm.Response, error) {
 	if len(response.Candidates) == 0 || response.Candidates[0].Content == nil {
 		return nil, errors.New("no response from model")
 	}
 
 	var (
-		content      []fantasy.Content
-		finishReason fantasy.FinishReason
+		content      []unillm.Content
+		finishReason unillm.FinishReason
 		hasToolCalls bool
 		candidate    = response.Candidates[0]
 	)
@@ -743,12 +743,12 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 		switch {
 		case part.Text != "":
 			if part.Thought {
-				reasoningContent := fantasy.ReasoningContent{Text: part.Text}
+				reasoningContent := unillm.ReasoningContent{Text: part.Text}
 				if part.ThoughtSignature != nil {
 					metadata := &ReasoningMetadata{
 						Signature: string(part.ThoughtSignature),
 					}
-					reasoningContent.ProviderMetadata = fantasy.ProviderMetadata{
+					reasoningContent.ProviderMetadata = unillm.ProviderMetadata{
 						Name: metadata,
 					}
 				}
@@ -762,12 +762,12 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 					// find the last reasoning content and add the signature
 					for i := len(content) - 1; i >= 0; i-- {
 						c := content[i]
-						if c.GetType() == fantasy.ContentTypeReasoning {
-							reasoningContent, ok := fantasy.AsContentType[fantasy.ReasoningContent](c)
+						if c.GetType() == unillm.ContentTypeReasoning {
+							reasoningContent, ok := unillm.AsContentType[unillm.ReasoningContent](c)
 							if !ok {
 								continue
 							}
-							reasoningContent.ProviderMetadata = fantasy.ProviderMetadata{
+							reasoningContent.ProviderMetadata = unillm.ProviderMetadata{
 								Name: metadata,
 							}
 							content[i] = reasoningContent
@@ -776,14 +776,14 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 						}
 					}
 					if !foundReasoning {
-						content = append(content, fantasy.ReasoningContent{
-							ProviderMetadata: fantasy.ProviderMetadata{
+						content = append(content, unillm.ReasoningContent{
+							ProviderMetadata: unillm.ProviderMetadata{
 								Name: metadata,
 							},
 						})
 					}
 				}
-				content = append(content, fantasy.TextContent{Text: part.Text})
+				content = append(content, unillm.TextContent{Text: part.Text})
 			}
 		case part.FunctionCall != nil:
 			input, err := json.Marshal(part.FunctionCall.Args)
@@ -800,12 +800,12 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 				// find the last reasoning content and add the signature
 				for i := len(content) - 1; i >= 0; i-- {
 					c := content[i]
-					if c.GetType() == fantasy.ContentTypeReasoning {
-						reasoningContent, ok := fantasy.AsContentType[fantasy.ReasoningContent](c)
+					if c.GetType() == unillm.ContentTypeReasoning {
+						reasoningContent, ok := unillm.AsContentType[unillm.ReasoningContent](c)
 						if !ok {
 							continue
 						}
-						reasoningContent.ProviderMetadata = fantasy.ProviderMetadata{
+						reasoningContent.ProviderMetadata = unillm.ProviderMetadata{
 							Name: metadata,
 						}
 						content[i] = reasoningContent
@@ -814,14 +814,14 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 					}
 				}
 				if !foundReasoning {
-					content = append(content, fantasy.ReasoningContent{
-						ProviderMetadata: fantasy.ProviderMetadata{
+					content = append(content, unillm.ReasoningContent{
+						ProviderMetadata: unillm.ProviderMetadata{
 							Name: metadata,
 						},
 					})
 				}
 			}
-			content = append(content, fantasy.ToolCallContent{
+			content = append(content, unillm.ToolCallContent{
 				ToolCallID:       toolCallID,
 				ToolName:         part.FunctionCall.Name,
 				Input:            string(input),
@@ -835,12 +835,12 @@ func (g languageModel) mapResponse(response *genai.GenerateContentResponse, warn
 	}
 
 	if hasToolCalls {
-		finishReason = fantasy.FinishReasonToolCalls
+		finishReason = unillm.FinishReasonToolCalls
 	} else {
 		finishReason = mapFinishReason(candidate.FinishReason)
 	}
 
-	return &fantasy.Response{
+	return &unillm.Response{
 		Content:      content,
 		Usage:        mapUsage(response.UsageMetadata),
 		FinishReason: finishReason,

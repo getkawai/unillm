@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/getkawai/unillm"
 	"github.com/getkawai/unillm/object"
 	"github.com/getkawai/unillm/schema"
+	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/responses"
@@ -24,12 +24,12 @@ type responsesLanguageModel struct {
 	provider   string
 	modelID    string
 	client     openai.Client
-	objectMode fantasy.ObjectMode
+	objectMode unillm.ObjectMode
 }
 
 // newResponsesLanguageModel implements a responses api model
 // INFO: (kujtim) currently we do not support stored parameter we default it to false.
-func newResponsesLanguageModel(modelID string, provider string, client openai.Client, objectMode fantasy.ObjectMode) responsesLanguageModel {
+func newResponsesLanguageModel(modelID string, provider string, client openai.Client, objectMode unillm.ObjectMode) responsesLanguageModel {
 	return responsesLanguageModel{
 		modelID:    modelID,
 		provider:   provider,
@@ -119,8 +119,8 @@ func getResponsesModelConfig(modelID string) responsesModelConfig {
 	}
 }
 
-func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.ResponseNewParams, []fantasy.CallWarning) {
-	var warnings []fantasy.CallWarning
+func (o responsesLanguageModel) prepareParams(call unillm.Call) (*responses.ResponseNewParams, []unillm.CallWarning) {
+	var warnings []unillm.CallWarning
 	params := &responses.ResponseNewParams{
 		Store: param.NewOpt(false),
 	}
@@ -128,22 +128,22 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 	modelConfig := getResponsesModelConfig(o.modelID)
 
 	if call.TopK != nil {
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedSetting,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedSetting,
 			Setting: "topK",
 		})
 	}
 
 	if call.PresencePenalty != nil {
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedSetting,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedSetting,
 			Setting: "presencePenalty",
 		})
 	}
 
 	if call.FrequencyPenalty != nil {
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedSetting,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedSetting,
 			Setting: "frequencyPenalty",
 		})
 	}
@@ -263,8 +263,8 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 	if modelConfig.isReasoningModel {
 		if call.Temperature != nil {
 			params.Temperature = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "temperature",
 				Details: "temperature is not supported for reasoning models",
 			})
@@ -272,8 +272,8 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 
 		if call.TopP != nil {
 			params.TopP = param.Opt[float64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "topP",
 				Details: "topP is not supported for reasoning models",
 			})
@@ -281,16 +281,16 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 	} else {
 		if openaiOptions != nil {
 			if openaiOptions.ReasoningEffort != nil {
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeUnsupportedSetting,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeUnsupportedSetting,
 					Setting: "reasoningEffort",
 					Details: "reasoningEffort is not supported for non-reasoning models",
 				})
 			}
 
 			if openaiOptions.ReasoningSummary != nil {
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeUnsupportedSetting,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeUnsupportedSetting,
 					Setting: "reasoningSummary",
 					Details: "reasoningSummary is not supported for non-reasoning models",
 				})
@@ -300,8 +300,8 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 
 	if openaiOptions != nil && openaiOptions.ServiceTier != nil {
 		if *openaiOptions.ServiceTier == ServiceTierFlex && !modelConfig.supportsFlexProcessing {
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "serviceTier",
 				Details: "flex processing is only available for o3, o4-mini, and gpt-5 models",
 			})
@@ -309,8 +309,8 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 		}
 
 		if *openaiOptions.ServiceTier == ServiceTierPriority && !modelConfig.supportsPriorityProcessing {
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "serviceTier",
 				Details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
 			})
@@ -329,26 +329,26 @@ func (o responsesLanguageModel) prepareParams(call fantasy.Call) (*responses.Res
 	return params, warnings
 }
 
-func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (responses.ResponseInputParam, []fantasy.CallWarning) {
+func toResponsesPrompt(prompt unillm.Prompt, systemMessageMode string) (responses.ResponseInputParam, []unillm.CallWarning) {
 	var input responses.ResponseInputParam
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 
 	for _, msg := range prompt {
 		switch msg.Role {
-		case fantasy.MessageRoleSystem:
+		case unillm.MessageRoleSystem:
 			var systemText string
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeText {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeText {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt can only have text content",
 					})
 					continue
 				}
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt text part does not have the right type",
 					})
 					continue
@@ -359,8 +359,8 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 			}
 
 			if systemText == "" {
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeOther,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeOther,
 					Message: "system prompt has no text parts",
 				})
 				continue
@@ -372,21 +372,21 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 			case "developer":
 				input = append(input, responses.ResponseInputItemParamOfMessage(systemText, responses.EasyInputMessageRoleDeveloper))
 			case "remove":
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeOther,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeOther,
 					Message: "system messages are removed for this model",
 				})
 			}
 
-		case fantasy.MessageRoleUser:
+		case unillm.MessageRoleUser:
 			var contentParts responses.ResponseInputMessageContentListParam
 			for i, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message text part does not have the right type",
 						})
 						continue
@@ -398,11 +398,11 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 						},
 					})
 
-				case fantasy.ContentTypeFile:
-					filePart, ok := fantasy.AsContentType[fantasy.FilePart](c)
+				case unillm.ContentTypeFile:
+					filePart, ok := unillm.AsContentType[unillm.FilePart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message file part does not have the right type",
 						})
 						continue
@@ -432,8 +432,8 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 							},
 						})
 					} else {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: fmt.Sprintf("file part media type %s not supported", filePart.MediaType),
 						})
 					}
@@ -442,25 +442,25 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 
 			input = append(input, responses.ResponseInputItemParamOfMessage(contentParts, responses.EasyInputMessageRoleUser))
 
-		case fantasy.MessageRoleAssistant:
+		case unillm.MessageRoleAssistant:
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message text part does not have the right type",
 						})
 						continue
 					}
 					input = append(input, responses.ResponseInputItemParamOfMessage(textPart.Text, responses.EasyInputMessageRoleAssistant))
 
-				case fantasy.ContentTypeToolCall:
-					toolCallPart, ok := fantasy.AsContentType[fantasy.ToolCallPart](c)
+				case unillm.ContentTypeToolCall:
+					toolCallPart, ok := unillm.AsContentType[unillm.ToolCallPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message tool call part does not have the right type",
 						})
 						continue
@@ -472,22 +472,22 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 
 					inputJSON, err := json.Marshal(toolCallPart.Input)
 					if err != nil {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: fmt.Sprintf("failed to marshal tool call input: %v", err),
 						})
 						continue
 					}
 
 					input = append(input, responses.ResponseInputItemParamOfFunctionCall(string(inputJSON), toolCallPart.ToolCallID, toolCallPart.ToolName))
-				case fantasy.ContentTypeReasoning:
+				case unillm.ContentTypeReasoning:
 					reasoningMetadata := GetReasoningMetadata(c.Options())
 					if reasoningMetadata == nil || reasoningMetadata.ItemID == "" {
 						continue
 					}
 					if len(reasoningMetadata.Summary) == 0 && reasoningMetadata.EncryptedContent == nil {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message reasoning part does is empty",
 						})
 						continue
@@ -513,20 +513,20 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 				}
 			}
 
-		case fantasy.MessageRoleTool:
+		case unillm.MessageRoleTool:
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeToolResult {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeToolResult {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message can only have tool result content",
 					})
 					continue
 				}
 
-				toolResultPart, ok := fantasy.AsContentType[fantasy.ToolResultPart](c)
+				toolResultPart, ok := unillm.AsContentType[unillm.ToolResultPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message result part does not have the right type",
 					})
 					continue
@@ -534,31 +534,31 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 
 				var outputStr string
 				switch toolResultPart.Output.GetType() {
-				case fantasy.ToolResultContentTypeText:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](toolResultPart.Output)
+				case unillm.ToolResultContentTypeText:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentText](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue
 					}
 					outputStr = output.Text
-				case fantasy.ToolResultContentTypeError:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](toolResultPart.Output)
+				case unillm.ToolResultContentTypeError:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentError](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue
 					}
 					outputStr = output.Error.Error()
-				case fantasy.ToolResultContentTypeMedia:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentMedia](toolResultPart.Output)
+				case unillm.ToolResultContentTypeMedia:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentMedia](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue
@@ -570,8 +570,8 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 					}
 					jsonBytes, err := json.Marshal(mediaContent)
 					if err != nil {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: fmt.Sprintf("failed to marshal tool result: %v", err),
 						})
 						continue
@@ -587,8 +587,8 @@ func toResponsesPrompt(prompt fantasy.Prompt, systemMessageMode string) (respons
 	return input, warnings
 }
 
-func toResponsesTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice, options *ResponsesProviderOptions) ([]responses.ToolUnionParam, responses.ResponseNewParamsToolChoiceUnion, []fantasy.CallWarning) {
-	warnings := make([]fantasy.CallWarning, 0)
+func toResponsesTools(tools []unillm.Tool, toolChoice *unillm.ToolChoice, options *ResponsesProviderOptions) ([]responses.ToolUnionParam, responses.ResponseNewParamsToolChoiceUnion, []unillm.CallWarning) {
+	warnings := make([]unillm.CallWarning, 0)
 	var openaiTools []responses.ToolUnionParam
 
 	if len(tools) == 0 {
@@ -601,8 +601,8 @@ func toResponsesTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice, opti
 	}
 
 	for _, tool := range tools {
-		if tool.GetType() == fantasy.ToolTypeFunction {
-			ft, ok := tool.(fantasy.FunctionTool)
+		if tool.GetType() == unillm.ToolTypeFunction {
+			ft, ok := tool.(unillm.FunctionTool)
 			if !ok {
 				continue
 			}
@@ -618,8 +618,8 @@ func toResponsesTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice, opti
 			continue
 		}
 
-		warnings = append(warnings, fantasy.CallWarning{
-			Type:    fantasy.CallWarningTypeUnsupportedTool,
+		warnings = append(warnings, unillm.CallWarning{
+			Type:    unillm.CallWarningTypeUnsupportedTool,
 			Tool:    tool,
 			Message: "tool is not supported",
 		})
@@ -632,15 +632,15 @@ func toResponsesTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice, opti
 	var openaiToolChoice responses.ResponseNewParamsToolChoiceUnion
 
 	switch *toolChoice {
-	case fantasy.ToolChoiceAuto:
+	case unillm.ToolChoiceAuto:
 		openaiToolChoice = responses.ResponseNewParamsToolChoiceUnion{
 			OfToolChoiceMode: param.NewOpt(responses.ToolChoiceOptionsAuto),
 		}
-	case fantasy.ToolChoiceNone:
+	case unillm.ToolChoiceNone:
 		openaiToolChoice = responses.ResponseNewParamsToolChoiceUnion{
 			OfToolChoiceMode: param.NewOpt(responses.ToolChoiceOptionsNone),
 		}
-	case fantasy.ToolChoiceRequired:
+	case unillm.ToolChoiceRequired:
 		openaiToolChoice = responses.ResponseNewParamsToolChoiceUnion{
 			OfToolChoiceMode: param.NewOpt(responses.ToolChoiceOptionsRequired),
 		}
@@ -656,7 +656,7 @@ func toResponsesTools(tools []fantasy.Tool, toolChoice *fantasy.ToolChoice, opti
 	return openaiTools, openaiToolChoice, warnings
 }
 
-func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call) (*fantasy.Response, error) {
+func (o responsesLanguageModel) Generate(ctx context.Context, call unillm.Call) (*unillm.Response, error) {
 	params, warnings := o.prepareParams(call)
 	response, err := o.client.Responses.New(ctx, *params)
 	if err != nil {
@@ -664,13 +664,13 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 	}
 
 	if response.Error.Message != "" {
-		return nil, &fantasy.Error{
+		return nil, &unillm.Error{
 			Title:   "provider error",
 			Message: fmt.Sprintf("%s (code: %s)", response.Error.Message, response.Error.Code),
 		}
 	}
 
-	var content []fantasy.Content
+	var content []unillm.Content
 	hasFunctionCall := false
 
 	for _, outputItem := range response.Output {
@@ -678,15 +678,15 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 		case "message":
 			for _, contentPart := range outputItem.Content {
 				if contentPart.Type == "output_text" {
-					content = append(content, fantasy.TextContent{
+					content = append(content, unillm.TextContent{
 						Text: contentPart.Text,
 					})
 
 					for _, annotation := range contentPart.Annotations {
 						switch annotation.Type {
 						case "url_citation":
-							content = append(content, fantasy.SourceContent{
-								SourceType: fantasy.SourceTypeURL,
+							content = append(content, unillm.SourceContent{
+								SourceType: unillm.SourceTypeURL,
 								ID:         uuid.NewString(),
 								URL:        annotation.URL,
 								Title:      annotation.Title,
@@ -700,8 +700,8 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 							if filename == "" {
 								filename = annotation.FileID
 							}
-							content = append(content, fantasy.SourceContent{
-								SourceType: fantasy.SourceTypeDocument,
+							content = append(content, unillm.SourceContent{
+								SourceType: unillm.SourceTypeDocument,
 								ID:         uuid.NewString(),
 								MediaType:  "text/plain",
 								Title:      title,
@@ -714,7 +714,7 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 
 		case "function_call":
 			hasFunctionCall = true
-			content = append(content, fantasy.ToolCallContent{
+			content = append(content, unillm.ToolCallContent{
 				ProviderExecuted: false,
 				ToolCallID:       outputItem.CallID,
 				ToolName:         outputItem.Name,
@@ -743,16 +743,16 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 				metadata.Summary = append(metadata.Summary, s.Text)
 			}
 
-			content = append(content, fantasy.ReasoningContent{
+			content = append(content, unillm.ReasoningContent{
 				Text: strings.Join(metadata.Summary, "\n"),
-				ProviderMetadata: fantasy.ProviderMetadata{
+				ProviderMetadata: unillm.ProviderMetadata{
 					Name: metadata,
 				},
 			})
 		}
 	}
 
-	usage := fantasy.Usage{
+	usage := unillm.Usage{
 		InputTokens:  response.Usage.InputTokens,
 		OutputTokens: response.Usage.OutputTokens,
 		TotalTokens:  response.Usage.InputTokens + response.Usage.OutputTokens,
@@ -767,47 +767,47 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call fantasy.Call)
 
 	finishReason := mapResponsesFinishReason(response.IncompleteDetails.Reason, hasFunctionCall)
 
-	return &fantasy.Response{
+	return &unillm.Response{
 		Content:          content,
 		Usage:            usage,
 		FinishReason:     finishReason,
-		ProviderMetadata: fantasy.ProviderMetadata{},
+		ProviderMetadata: unillm.ProviderMetadata{},
 		Warnings:         warnings,
 	}, nil
 }
 
-func mapResponsesFinishReason(reason string, hasFunctionCall bool) fantasy.FinishReason {
+func mapResponsesFinishReason(reason string, hasFunctionCall bool) unillm.FinishReason {
 	if hasFunctionCall {
-		return fantasy.FinishReasonToolCalls
+		return unillm.FinishReasonToolCalls
 	}
 
 	switch reason {
 	case "":
-		return fantasy.FinishReasonStop
+		return unillm.FinishReasonStop
 	case "max_tokens", "max_output_tokens":
-		return fantasy.FinishReasonLength
+		return unillm.FinishReasonLength
 	case "content_filter":
-		return fantasy.FinishReasonContentFilter
+		return unillm.FinishReasonContentFilter
 	default:
-		return fantasy.FinishReasonOther
+		return unillm.FinishReasonOther
 	}
 }
 
-func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (fantasy.StreamResponse, error) {
+func (o responsesLanguageModel) Stream(ctx context.Context, call unillm.Call) (unillm.StreamResponse, error) {
 	params, warnings := o.prepareParams(call)
 
 	stream := o.client.Responses.NewStreaming(ctx, *params)
 
-	finishReason := fantasy.FinishReasonUnknown
-	var usage fantasy.Usage
+	finishReason := unillm.FinishReasonUnknown
+	var usage unillm.Usage
 	ongoingToolCalls := make(map[int64]*ongoingToolCall)
 	hasFunctionCall := false
 	activeReasoning := make(map[string]*reasoningState)
 
-	return func(yield func(fantasy.StreamPart) bool) {
+	return func(yield func(unillm.StreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.StreamPart{
-				Type:     fantasy.StreamPartTypeWarnings,
+			if !yield(unillm.StreamPart{
+				Type:     unillm.StreamPartTypeWarnings,
 				Warnings: warnings,
 			}) {
 				return
@@ -829,8 +829,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 						toolName:   added.Item.Name,
 						toolCallID: added.Item.CallID,
 					}
-					if !yield(fantasy.StreamPart{
-						Type:         fantasy.StreamPartTypeToolInputStart,
+					if !yield(unillm.StreamPart{
+						Type:         unillm.StreamPartTypeToolInputStart,
 						ID:           added.Item.CallID,
 						ToolCallName: added.Item.Name,
 					}) {
@@ -838,8 +838,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 					}
 
 				case "message":
-					if !yield(fantasy.StreamPart{
-						Type: fantasy.StreamPartTypeTextStart,
+					if !yield(unillm.StreamPart{
+						Type: unillm.StreamPartTypeTextStart,
 						ID:   added.Item.ID,
 					}) {
 						return
@@ -857,10 +857,10 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 					activeReasoning[added.Item.ID] = &reasoningState{
 						metadata: metadata,
 					}
-					if !yield(fantasy.StreamPart{
-						Type: fantasy.StreamPartTypeReasoningStart,
+					if !yield(unillm.StreamPart{
+						Type: unillm.StreamPartTypeReasoningStart,
 						ID:   added.Item.ID,
-						ProviderMetadata: fantasy.ProviderMetadata{
+						ProviderMetadata: unillm.ProviderMetadata{
 							Name: metadata,
 						},
 					}) {
@@ -877,14 +877,14 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 						delete(ongoingToolCalls, done.OutputIndex)
 						hasFunctionCall = true
 
-						if !yield(fantasy.StreamPart{
-							Type: fantasy.StreamPartTypeToolInputEnd,
+						if !yield(unillm.StreamPart{
+							Type: unillm.StreamPartTypeToolInputEnd,
 							ID:   done.Item.CallID,
 						}) {
 							return
 						}
-						if !yield(fantasy.StreamPart{
-							Type:          fantasy.StreamPartTypeToolCall,
+						if !yield(unillm.StreamPart{
+							Type:          unillm.StreamPartTypeToolCall,
 							ID:            done.Item.CallID,
 							ToolCallName:  done.Item.Name,
 							ToolCallInput: done.Item.Arguments,
@@ -894,8 +894,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 					}
 
 				case "message":
-					if !yield(fantasy.StreamPart{
-						Type: fantasy.StreamPartTypeTextEnd,
+					if !yield(unillm.StreamPart{
+						Type: unillm.StreamPartTypeTextEnd,
 						ID:   done.Item.ID,
 					}) {
 						return
@@ -904,10 +904,10 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 				case "reasoning":
 					state := activeReasoning[done.Item.ID]
 					if state != nil {
-						if !yield(fantasy.StreamPart{
-							Type: fantasy.StreamPartTypeReasoningEnd,
+						if !yield(unillm.StreamPart{
+							Type: unillm.StreamPartTypeReasoningEnd,
 							ID:   done.Item.ID,
-							ProviderMetadata: fantasy.ProviderMetadata{
+							ProviderMetadata: unillm.ProviderMetadata{
 								Name: state.metadata,
 							},
 						}) {
@@ -921,8 +921,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 				delta := event.AsResponseFunctionCallArgumentsDelta()
 				tc := ongoingToolCalls[delta.OutputIndex]
 				if tc != nil {
-					if !yield(fantasy.StreamPart{
-						Type:  fantasy.StreamPartTypeToolInputDelta,
+					if !yield(unillm.StreamPart{
+						Type:  unillm.StreamPartTypeToolInputDelta,
 						ID:    tc.toolCallID,
 						Delta: delta.Delta,
 					}) {
@@ -932,8 +932,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 
 			case "response.output_text.delta":
 				textDelta := event.AsResponseOutputTextDelta()
-				if !yield(fantasy.StreamPart{
-					Type:  fantasy.StreamPartTypeTextDelta,
+				if !yield(unillm.StreamPart{
+					Type:  unillm.StreamPartTypeTextDelta,
 					ID:    textDelta.ItemID,
 					Delta: textDelta.Delta,
 				}) {
@@ -946,11 +946,11 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 				if state != nil {
 					state.metadata.Summary = append(state.metadata.Summary, "")
 					activeReasoning[added.ItemID] = state
-					if !yield(fantasy.StreamPart{
-						Type:  fantasy.StreamPartTypeReasoningDelta,
+					if !yield(unillm.StreamPart{
+						Type:  unillm.StreamPartTypeReasoningDelta,
 						ID:    added.ItemID,
 						Delta: "\n",
-						ProviderMetadata: fantasy.ProviderMetadata{
+						ProviderMetadata: unillm.ProviderMetadata{
 							Name: state.metadata,
 						},
 					}) {
@@ -966,11 +966,11 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 						state.metadata.Summary[textDelta.SummaryIndex] += textDelta.Delta
 					}
 					activeReasoning[textDelta.ItemID] = state
-					if !yield(fantasy.StreamPart{
-						Type:  fantasy.StreamPartTypeReasoningDelta,
+					if !yield(unillm.StreamPart{
+						Type:  unillm.StreamPartTypeReasoningDelta,
 						ID:    textDelta.ItemID,
 						Delta: textDelta.Delta,
-						ProviderMetadata: fantasy.ProviderMetadata{
+						ProviderMetadata: unillm.ProviderMetadata{
 							Name: state.metadata,
 						},
 					}) {
@@ -981,7 +981,7 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 			case "response.completed", "response.incomplete":
 				completed := event.AsResponseCompleted()
 				finishReason = mapResponsesFinishReason(completed.Response.IncompleteDetails.Reason, hasFunctionCall)
-				usage = fantasy.Usage{
+				usage = unillm.Usage{
 					InputTokens:  completed.Response.Usage.InputTokens,
 					OutputTokens: completed.Response.Usage.OutputTokens,
 					TotalTokens:  completed.Response.Usage.InputTokens + completed.Response.Usage.OutputTokens,
@@ -995,8 +995,8 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 
 			case "error":
 				errorEvent := event.AsError()
-				if !yield(fantasy.StreamPart{
-					Type:  fantasy.StreamPartTypeError,
+				if !yield(unillm.StreamPart{
+					Type:  unillm.StreamPartTypeError,
 					Error: fmt.Errorf("response error: %s (code: %s)", errorEvent.Message, errorEvent.Code),
 				}) {
 					return
@@ -1007,15 +1007,15 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 
 		err := stream.Err()
 		if err != nil {
-			yield(fantasy.StreamPart{
-				Type:  fantasy.StreamPartTypeError,
+			yield(unillm.StreamPart{
+				Type:  unillm.StreamPartTypeError,
 				Error: toProviderErr(err),
 			})
 			return
 		}
 
-		yield(fantasy.StreamPart{
-			Type:         fantasy.StreamPartTypeFinish,
+		yield(unillm.StreamPart{
+			Type:         unillm.StreamPartTypeFinish,
 			Usage:        usage,
 			FinishReason: finishReason,
 		})
@@ -1023,7 +1023,7 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call fantasy.Call) (
 }
 
 // GetReasoningMetadata extracts reasoning metadata from provider options for responses models.
-func GetReasoningMetadata(providerOptions fantasy.ProviderOptions) *ResponsesReasoningMetadata {
+func GetReasoningMetadata(providerOptions unillm.ProviderOptions) *ResponsesReasoningMetadata {
 	if openaiResponsesOptions, ok := providerOptions[Name]; ok {
 		if reasoning, ok := openaiResponsesOptions.(*ResponsesReasoningMetadata); ok {
 			return reasoning
@@ -1041,31 +1041,31 @@ type reasoningState struct {
 	metadata *ResponsesReasoningMetadata
 }
 
-// GenerateObject implements fantasy.LanguageModel.
-func (o responsesLanguageModel) GenerateObject(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+// GenerateObject implements unillm.LanguageModel.
+func (o responsesLanguageModel) GenerateObject(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	switch o.objectMode {
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.GenerateWithText(ctx, o, call)
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.GenerateWithTool(ctx, o, call)
 	default:
 		return o.generateObjectWithJSONMode(ctx, call)
 	}
 }
 
-// StreamObject implements fantasy.LanguageModel.
-func (o responsesLanguageModel) StreamObject(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+// StreamObject implements unillm.LanguageModel.
+func (o responsesLanguageModel) StreamObject(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	switch o.objectMode {
-	case fantasy.ObjectModeTool:
+	case unillm.ObjectModeTool:
 		return object.StreamWithTool(ctx, o, call)
-	case fantasy.ObjectModeText:
+	case unillm.ObjectModeText:
 		return object.StreamWithText(ctx, o, call)
 	default:
 		return o.streamObjectWithJSONMode(ctx, call)
 	}
 }
 
-func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (*fantasy.ObjectResponse, error) {
+func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (*unillm.ObjectResponse, error) {
 	// Convert our Schema to OpenAI's JSON Schema format
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
@@ -1078,7 +1078,7 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 	}
 
 	// Build request using prepareParams
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -1102,7 +1102,7 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 	}
 
 	if response.Error.Message != "" {
-		return nil, &fantasy.Error{
+		return nil, &unillm.Error{
 			Title:   "provider error",
 			Message: fmt.Sprintf("%s (code: %s)", response.Error.Message, response.Error.Code),
 		}
@@ -1122,13 +1122,13 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 	}
 
 	if jsonText == "" {
-		usage := fantasy.Usage{
+		usage := unillm.Usage{
 			InputTokens:  response.Usage.InputTokens,
 			OutputTokens: response.Usage.OutputTokens,
 			TotalTokens:  response.Usage.InputTokens + response.Usage.OutputTokens,
 		}
 		finishReason := mapResponsesFinishReason(response.IncompleteDetails.Reason, false)
-		return nil, &fantasy.NoObjectGeneratedError{
+		return nil, &unillm.NoObjectGeneratedError{
 			RawText:      "",
 			ParseError:   fmt.Errorf("no text content in response"),
 			Usage:        usage,
@@ -1144,7 +1144,7 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 		obj, err = schema.ParseAndValidate(jsonText, call.Schema)
 	}
 
-	usage := fantasy.Usage{
+	usage := unillm.Usage{
 		InputTokens:  response.Usage.InputTokens,
 		OutputTokens: response.Usage.OutputTokens,
 		TotalTokens:  response.Usage.InputTokens + response.Usage.OutputTokens,
@@ -1160,14 +1160,14 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 
 	if err != nil {
 		// Add usage info to error
-		if nogErr, ok := err.(*fantasy.NoObjectGeneratedError); ok {
+		if nogErr, ok := err.(*unillm.NoObjectGeneratedError); ok {
 			nogErr.Usage = usage
 			nogErr.FinishReason = finishReason
 		}
 		return nil, err
 	}
 
-	return &fantasy.ObjectResponse{
+	return &unillm.ObjectResponse{
 		Object:       obj,
 		RawText:      jsonText,
 		Usage:        usage,
@@ -1176,7 +1176,7 @@ func (o responsesLanguageModel) generateObjectWithJSONMode(ctx context.Context, 
 	}, nil
 }
 
-func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, call fantasy.ObjectCall) (fantasy.ObjectStreamResponse, error) {
+func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, call unillm.ObjectCall) (unillm.ObjectStreamResponse, error) {
 	// Convert our Schema to OpenAI's JSON Schema format
 	jsonSchemaMap := schema.ToMap(call.Schema)
 
@@ -1189,7 +1189,7 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 	}
 
 	// Build request using prepareParams
-	fantasyCall := fantasy.Call{
+	fantasyCall := unillm.Call{
 		Prompt:           call.Prompt,
 		MaxOutputTokens:  call.MaxOutputTokens,
 		Temperature:      call.Temperature,
@@ -1208,10 +1208,10 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 
 	stream := o.client.Responses.NewStreaming(ctx, *params)
 
-	return func(yield func(fantasy.ObjectStreamPart) bool) {
+	return func(yield func(unillm.ObjectStreamPart) bool) {
 		if len(warnings) > 0 {
-			if !yield(fantasy.ObjectStreamPart{
-				Type:     fantasy.ObjectStreamPartTypeObject,
+			if !yield(unillm.ObjectStreamPart{
+				Type:     unillm.ObjectStreamPartTypeObject,
 				Warnings: warnings,
 			}) {
 				return
@@ -1220,8 +1220,8 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 
 		var accumulated string
 		var lastParsedObject any
-		var usage fantasy.Usage
-		var finishReason fantasy.FinishReason
+		var usage unillm.Usage
+		var finishReason unillm.FinishReason
 		var streamErr error
 		hasFunctionCall := false
 
@@ -1241,8 +1241,8 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 					if err := schema.ValidateAgainstSchema(obj, call.Schema); err == nil {
 						// Only emit if object is different from last
 						if !reflect.DeepEqual(obj, lastParsedObject) {
-							if !yield(fantasy.ObjectStreamPart{
-								Type:   fantasy.ObjectStreamPartTypeObject,
+							if !yield(unillm.ObjectStreamPart{
+								Type:   unillm.ObjectStreamPartTypeObject,
 								Object: obj,
 							}) {
 								return
@@ -1260,8 +1260,8 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 						if (state2 == schema.ParseStateSuccessful || state2 == schema.ParseStateRepaired) &&
 							schema.ValidateAgainstSchema(obj2, call.Schema) == nil {
 							if !reflect.DeepEqual(obj2, lastParsedObject) {
-								if !yield(fantasy.ObjectStreamPart{
-									Type:   fantasy.ObjectStreamPartTypeObject,
+								if !yield(unillm.ObjectStreamPart{
+									Type:   unillm.ObjectStreamPartTypeObject,
 									Object: obj2,
 								}) {
 									return
@@ -1275,7 +1275,7 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 			case "response.completed", "response.incomplete":
 				completed := event.AsResponseCompleted()
 				finishReason = mapResponsesFinishReason(completed.Response.IncompleteDetails.Reason, hasFunctionCall)
-				usage = fantasy.Usage{
+				usage = unillm.Usage{
 					InputTokens:  completed.Response.Usage.InputTokens,
 					OutputTokens: completed.Response.Usage.OutputTokens,
 					TotalTokens:  completed.Response.Usage.InputTokens + completed.Response.Usage.OutputTokens,
@@ -1290,8 +1290,8 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 			case "error":
 				errorEvent := event.AsError()
 				streamErr = fmt.Errorf("response error: %s (code: %s)", errorEvent.Message, errorEvent.Code)
-				if !yield(fantasy.ObjectStreamPart{
-					Type:  fantasy.ObjectStreamPartTypeError,
+				if !yield(unillm.ObjectStreamPart{
+					Type:  unillm.ObjectStreamPartTypeError,
 					Error: streamErr,
 				}) {
 					return
@@ -1302,8 +1302,8 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 
 		err := stream.Err()
 		if err != nil {
-			yield(fantasy.ObjectStreamPart{
-				Type:  fantasy.ObjectStreamPartTypeError,
+			yield(unillm.ObjectStreamPart{
+				Type:  unillm.ObjectStreamPartTypeError,
 				Error: toProviderErr(err),
 			})
 			return
@@ -1311,16 +1311,16 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 
 		// Final validation and emit
 		if streamErr == nil && lastParsedObject != nil {
-			yield(fantasy.ObjectStreamPart{
-				Type:         fantasy.ObjectStreamPartTypeFinish,
+			yield(unillm.ObjectStreamPart{
+				Type:         unillm.ObjectStreamPartTypeFinish,
 				Usage:        usage,
 				FinishReason: finishReason,
 			})
 		} else if streamErr == nil && lastParsedObject == nil {
 			// No object was generated
-			yield(fantasy.ObjectStreamPart{
-				Type: fantasy.ObjectStreamPartTypeError,
-				Error: &fantasy.NoObjectGeneratedError{
+			yield(unillm.ObjectStreamPart{
+				Type: unillm.ObjectStreamPartTypeError,
+				Error: &unillm.NoObjectGeneratedError{
 					RawText:      accumulated,
 					ParseError:   fmt.Errorf("no valid object generated in stream"),
 					Usage:        usage,

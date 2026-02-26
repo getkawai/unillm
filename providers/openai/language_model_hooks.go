@@ -12,40 +12,40 @@ import (
 )
 
 // LanguageModelPrepareCallFunc is a function that prepares the call for the language model.
-type LanguageModelPrepareCallFunc = func(model fantasy.LanguageModel, params *openai.ChatCompletionNewParams, call fantasy.Call) ([]fantasy.CallWarning, error)
+type LanguageModelPrepareCallFunc = func(model unillm.LanguageModel, params *openai.ChatCompletionNewParams, call unillm.Call) ([]unillm.CallWarning, error)
 
 // LanguageModelMapFinishReasonFunc is a function that maps the finish reason for the language model.
-type LanguageModelMapFinishReasonFunc = func(finishReason string) fantasy.FinishReason
+type LanguageModelMapFinishReasonFunc = func(finishReason string) unillm.FinishReason
 
 // LanguageModelUsageFunc is a function that calculates usage for the language model.
-type LanguageModelUsageFunc = func(choice openai.ChatCompletion) (fantasy.Usage, fantasy.ProviderOptionsData)
+type LanguageModelUsageFunc = func(choice openai.ChatCompletion) (unillm.Usage, unillm.ProviderOptionsData)
 
 // LanguageModelExtraContentFunc is a function that adds extra content for the language model.
-type LanguageModelExtraContentFunc = func(choice openai.ChatCompletionChoice) []fantasy.Content
+type LanguageModelExtraContentFunc = func(choice openai.ChatCompletionChoice) []unillm.Content
 
 // LanguageModelStreamExtraFunc is a function that handles stream extra functionality for the language model.
-type LanguageModelStreamExtraFunc = func(chunk openai.ChatCompletionChunk, yield func(fantasy.StreamPart) bool, ctx map[string]any) (map[string]any, bool)
+type LanguageModelStreamExtraFunc = func(chunk openai.ChatCompletionChunk, yield func(unillm.StreamPart) bool, ctx map[string]any) (map[string]any, bool)
 
 // LanguageModelStreamUsageFunc is a function that calculates stream usage for the language model.
-type LanguageModelStreamUsageFunc = func(chunk openai.ChatCompletionChunk, ctx map[string]any, metadata fantasy.ProviderMetadata) (fantasy.Usage, fantasy.ProviderMetadata)
+type LanguageModelStreamUsageFunc = func(chunk openai.ChatCompletionChunk, ctx map[string]any, metadata unillm.ProviderMetadata) (unillm.Usage, unillm.ProviderMetadata)
 
 // LanguageModelStreamProviderMetadataFunc is a function that handles stream provider metadata for the language model.
-type LanguageModelStreamProviderMetadataFunc = func(choice openai.ChatCompletionChoice, metadata fantasy.ProviderMetadata) fantasy.ProviderMetadata
+type LanguageModelStreamProviderMetadataFunc = func(choice openai.ChatCompletionChoice, metadata unillm.ProviderMetadata) unillm.ProviderMetadata
 
-// LanguageModelToPromptFunc is a function that handles converting fantasy prompts to openai sdk messages.
-type LanguageModelToPromptFunc = func(prompt fantasy.Prompt, provider, model string) ([]openai.ChatCompletionMessageParamUnion, []fantasy.CallWarning)
+// LanguageModelToPromptFunc is a function that handles converting unillm prompts to openai sdk messages.
+type LanguageModelToPromptFunc = func(prompt unillm.Prompt, provider, model string) ([]openai.ChatCompletionMessageParamUnion, []unillm.CallWarning)
 
 // DefaultPrepareCallFunc is the default implementation for preparing a call to the language model.
-func DefaultPrepareCallFunc(model fantasy.LanguageModel, params *openai.ChatCompletionNewParams, call fantasy.Call) ([]fantasy.CallWarning, error) {
+func DefaultPrepareCallFunc(model unillm.LanguageModel, params *openai.ChatCompletionNewParams, call unillm.Call) ([]unillm.CallWarning, error) {
 	if call.ProviderOptions == nil {
 		return nil, nil
 	}
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 	providerOptions := &ProviderOptions{}
 	if v, ok := call.ProviderOptions[Name]; ok {
 		providerOptions, ok = v.(*ProviderOptions)
 		if !ok {
-			return nil, &fantasy.Error{Title: "invalid argument", Message: "openai provider options should be *openai.ProviderOptions"}
+			return nil, &unillm.Error{Title: "invalid argument", Message: "openai provider options should be *openai.ProviderOptions"}
 		}
 	}
 
@@ -127,24 +127,24 @@ func DefaultPrepareCallFunc(model fantasy.LanguageModel, params *openai.ChatComp
 	if isReasoningModel(model.Model()) {
 		if providerOptions.LogitBias != nil {
 			params.LogitBias = nil
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "LogitBias",
 				Message: "LogitBias is not supported for reasoning models",
 			})
 		}
 		if providerOptions.LogProbs != nil {
 			params.Logprobs = param.Opt[bool]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "Logprobs",
 				Message: "Logprobs is not supported for reasoning models",
 			})
 		}
 		if providerOptions.TopLogProbs != nil {
 			params.TopLogprobs = param.Opt[int64]{}
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "TopLogprobs",
 				Message: "TopLogprobs is not supported for reasoning models",
 			})
@@ -156,15 +156,15 @@ func DefaultPrepareCallFunc(model fantasy.LanguageModel, params *openai.ChatComp
 		serviceTier := *providerOptions.ServiceTier
 		if serviceTier == "flex" && !supportsFlexProcessing(model.Model()) {
 			params.ServiceTier = ""
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "ServiceTier",
 				Details: "flex processing is only available for o3, o4-mini, and gpt-5 models",
 			})
 		} else if serviceTier == "priority" && !supportsPriorityProcessing(model.Model()) {
 			params.ServiceTier = ""
-			warnings = append(warnings, fantasy.CallWarning{
-				Type:    fantasy.CallWarningTypeUnsupportedSetting,
+			warnings = append(warnings, unillm.CallWarning{
+				Type:    unillm.CallWarningTypeUnsupportedSetting,
 				Setting: "ServiceTier",
 				Details: "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
 			})
@@ -174,23 +174,23 @@ func DefaultPrepareCallFunc(model fantasy.LanguageModel, params *openai.ChatComp
 }
 
 // DefaultMapFinishReasonFunc is the default implementation for mapping finish reasons.
-func DefaultMapFinishReasonFunc(finishReason string) fantasy.FinishReason {
+func DefaultMapFinishReasonFunc(finishReason string) unillm.FinishReason {
 	switch finishReason {
 	case "stop":
-		return fantasy.FinishReasonStop
+		return unillm.FinishReasonStop
 	case "length":
-		return fantasy.FinishReasonLength
+		return unillm.FinishReasonLength
 	case "content_filter":
-		return fantasy.FinishReasonContentFilter
+		return unillm.FinishReasonContentFilter
 	case "function_call", "tool_calls":
-		return fantasy.FinishReasonToolCalls
+		return unillm.FinishReasonToolCalls
 	default:
-		return fantasy.FinishReasonUnknown
+		return unillm.FinishReasonUnknown
 	}
 }
 
 // DefaultUsageFunc is the default implementation for calculating usage.
-func DefaultUsageFunc(response openai.ChatCompletion) (fantasy.Usage, fantasy.ProviderOptionsData) {
+func DefaultUsageFunc(response openai.ChatCompletion) (unillm.Usage, unillm.ProviderOptionsData) {
 	completionTokenDetails := response.Usage.CompletionTokensDetails
 	promptTokenDetails := response.Usage.PromptTokensDetails
 
@@ -211,7 +211,7 @@ func DefaultUsageFunc(response openai.ChatCompletion) (fantasy.Usage, fantasy.Pr
 			providerMetadata.RejectedPredictionTokens = completionTokenDetails.RejectedPredictionTokens
 		}
 	}
-	return fantasy.Usage{
+	return unillm.Usage{
 		InputTokens:     response.Usage.PromptTokens,
 		OutputTokens:    response.Usage.CompletionTokens,
 		TotalTokens:     response.Usage.TotalTokens,
@@ -221,9 +221,9 @@ func DefaultUsageFunc(response openai.ChatCompletion) (fantasy.Usage, fantasy.Pr
 }
 
 // DefaultStreamUsageFunc is the default implementation for calculating stream usage.
-func DefaultStreamUsageFunc(chunk openai.ChatCompletionChunk, _ map[string]any, metadata fantasy.ProviderMetadata) (fantasy.Usage, fantasy.ProviderMetadata) {
+func DefaultStreamUsageFunc(chunk openai.ChatCompletionChunk, _ map[string]any, metadata unillm.ProviderMetadata) (unillm.Usage, unillm.ProviderMetadata) {
 	if chunk.Usage.TotalTokens == 0 {
-		return fantasy.Usage{}, nil
+		return unillm.Usage{}, nil
 	}
 	streamProviderMetadata := &ProviderMetadata{}
 	if metadata != nil {
@@ -237,7 +237,7 @@ func DefaultStreamUsageFunc(chunk openai.ChatCompletionChunk, _ map[string]any, 
 	// we do this here because the acc does not add prompt details
 	completionTokenDetails := chunk.Usage.CompletionTokensDetails
 	promptTokenDetails := chunk.Usage.PromptTokensDetails
-	usage := fantasy.Usage{
+	usage := unillm.Usage{
 		InputTokens:     chunk.Usage.PromptTokens,
 		OutputTokens:    chunk.Usage.CompletionTokens,
 		TotalTokens:     chunk.Usage.TotalTokens,
@@ -255,15 +255,15 @@ func DefaultStreamUsageFunc(chunk openai.ChatCompletionChunk, _ map[string]any, 
 		}
 	}
 
-	return usage, fantasy.ProviderMetadata{
+	return usage, unillm.ProviderMetadata{
 		Name: streamProviderMetadata,
 	}
 }
 
 // DefaultStreamProviderMetadataFunc is the default implementation for handling stream provider metadata.
-func DefaultStreamProviderMetadataFunc(choice openai.ChatCompletionChoice, metadata fantasy.ProviderMetadata) fantasy.ProviderMetadata {
+func DefaultStreamProviderMetadataFunc(choice openai.ChatCompletionChoice, metadata unillm.ProviderMetadata) unillm.ProviderMetadata {
 	if metadata == nil {
-		metadata = fantasy.ProviderMetadata{}
+		metadata = unillm.ProviderMetadata{}
 	}
 	streamProviderMetadata, ok := metadata[Name]
 	if !ok {
@@ -276,26 +276,26 @@ func DefaultStreamProviderMetadataFunc(choice openai.ChatCompletionChoice, metad
 	return metadata
 }
 
-// DefaultToPrompt converts a fantasy prompt to OpenAI format with default handling.
-func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletionMessageParamUnion, []fantasy.CallWarning) {
+// DefaultToPrompt converts a unillm prompt to OpenAI format with default handling.
+func DefaultToPrompt(prompt unillm.Prompt, _, _ string) ([]openai.ChatCompletionMessageParamUnion, []unillm.CallWarning) {
 	var messages []openai.ChatCompletionMessageParamUnion
-	var warnings []fantasy.CallWarning
+	var warnings []unillm.CallWarning
 	for _, msg := range prompt {
 		switch msg.Role {
-		case fantasy.MessageRoleSystem:
+		case unillm.MessageRoleSystem:
 			var systemPromptParts []string
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeText {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeText {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt can only have text content",
 					})
 					continue
 				}
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "system prompt text part does not have the right type",
 					})
 					continue
@@ -306,20 +306,20 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 				}
 			}
 			if len(systemPromptParts) == 0 {
-				warnings = append(warnings, fantasy.CallWarning{
-					Type:    fantasy.CallWarningTypeOther,
+				warnings = append(warnings, unillm.CallWarning{
+					Type:    unillm.CallWarningTypeOther,
 					Message: "system prompt has no text parts",
 				})
 				continue
 			}
 			messages = append(messages, openai.SystemMessage(strings.Join(systemPromptParts, "\n")))
-		case fantasy.MessageRoleUser:
+		case unillm.MessageRoleUser:
 			// simple user message just text content
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "user message text part does not have the right type",
 					})
 					continue
@@ -334,11 +334,11 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 			var content []openai.ChatCompletionContentPartUnionParam
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message text part does not have the right type",
 						})
 						continue
@@ -348,11 +348,11 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 							Text: textPart.Text,
 						},
 					})
-				case fantasy.ContentTypeFile:
-					filePart, ok := fantasy.AsContentType[fantasy.FilePart](c)
+				case unillm.ContentTypeFile:
+					filePart, ok := unillm.AsContentType[unillm.FilePart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "user message file part does not have the right type",
 						})
 						continue
@@ -430,21 +430,21 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 						}
 
 					default:
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: fmt.Sprintf("file part media type %s not supported", filePart.MediaType),
 						})
 					}
 				}
 			}
 			messages = append(messages, openai.UserMessage(content))
-		case fantasy.MessageRoleAssistant:
+		case unillm.MessageRoleAssistant:
 			// simple assistant message just text content
-			if len(msg.Content) == 1 && msg.Content[0].GetType() == fantasy.ContentTypeText {
-				textPart, ok := fantasy.AsContentType[fantasy.TextPart](msg.Content[0])
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == unillm.ContentTypeText {
+				textPart, ok := unillm.AsContentType[unillm.TextPart](msg.Content[0])
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "assistant message text part does not have the right type",
 					})
 					continue
@@ -457,11 +457,11 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 			}
 			for _, c := range msg.Content {
 				switch c.GetType() {
-				case fantasy.ContentTypeText:
-					textPart, ok := fantasy.AsContentType[fantasy.TextPart](c)
+				case unillm.ContentTypeText:
+					textPart, ok := unillm.AsContentType[unillm.TextPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message text part does not have the right type",
 						})
 						continue
@@ -469,11 +469,11 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 					assistantMsg.Content = openai.ChatCompletionAssistantMessageParamContentUnion{
 						OfString: param.NewOpt(textPart.Text),
 					}
-				case fantasy.ContentTypeToolCall:
-					toolCallPart, ok := fantasy.AsContentType[fantasy.ToolCallPart](c)
+				case unillm.ContentTypeToolCall:
+					toolCallPart, ok := unillm.AsContentType[unillm.ToolCallPart](c)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "assistant message tool part does not have the right type",
 						})
 						continue
@@ -494,42 +494,42 @@ func DefaultToPrompt(prompt fantasy.Prompt, _, _ string) ([]openai.ChatCompletio
 			messages = append(messages, openai.ChatCompletionMessageParamUnion{
 				OfAssistant: &assistantMsg,
 			})
-		case fantasy.MessageRoleTool:
+		case unillm.MessageRoleTool:
 			for _, c := range msg.Content {
-				if c.GetType() != fantasy.ContentTypeToolResult {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+				if c.GetType() != unillm.ContentTypeToolResult {
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message can only have tool result content",
 					})
 					continue
 				}
 
-				toolResultPart, ok := fantasy.AsContentType[fantasy.ToolResultPart](c)
+				toolResultPart, ok := unillm.AsContentType[unillm.ToolResultPart](c)
 				if !ok {
-					warnings = append(warnings, fantasy.CallWarning{
-						Type:    fantasy.CallWarningTypeOther,
+					warnings = append(warnings, unillm.CallWarning{
+						Type:    unillm.CallWarningTypeOther,
 						Message: "tool message result part does not have the right type",
 					})
 					continue
 				}
 
 				switch toolResultPart.Output.GetType() {
-				case fantasy.ToolResultContentTypeText:
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](toolResultPart.Output)
+				case unillm.ToolResultContentTypeText:
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentText](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue
 					}
 					messages = append(messages, openai.ToolMessage(output.Text, toolResultPart.ToolCallID))
-				case fantasy.ToolResultContentTypeError:
+				case unillm.ToolResultContentTypeError:
 					// TODO: check if better handling is needed
-					output, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](toolResultPart.Output)
+					output, ok := unillm.AsToolResultOutputType[unillm.ToolResultOutputContentError](toolResultPart.Output)
 					if !ok {
-						warnings = append(warnings, fantasy.CallWarning{
-							Type:    fantasy.CallWarningTypeOther,
+						warnings = append(warnings, unillm.CallWarning{
+							Type:    unillm.CallWarningTypeOther,
 							Message: "tool result output does not have the right type",
 						})
 						continue

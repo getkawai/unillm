@@ -1,4 +1,4 @@
-// Package openai provides an implementation of the fantasy AI SDK for OpenAI's language models.
+// Package openai provides an implementation of the unillm AI SDK for OpenAI's language models.
 package openai
 
 import (
@@ -31,21 +31,21 @@ const (
 
 // Register OpenAI provider-specific types with the global registry.
 func init() {
-	fantasy.RegisterProviderType(TypeProviderOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderOptions
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
 		return &v, nil
 	})
-	fantasy.RegisterProviderType(TypeProviderFileOptions, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderFileOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderFileOptions
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
 		return &v, nil
 	})
-	fantasy.RegisterProviderType(TypeProviderMetadata, func(data []byte) (fantasy.ProviderOptionsData, error) {
+	unillm.RegisterProviderType(TypeProviderMetadata, func(data []byte) (unillm.ProviderOptionsData, error) {
 		var v ProviderMetadata
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
@@ -67,14 +67,14 @@ func (*ProviderMetadata) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderMetadata.
 func (m ProviderMetadata) MarshalJSON() ([]byte, error) {
 	type plain ProviderMetadata
-	return fantasy.MarshalProviderType(TypeProviderMetadata, plain(m))
+	return unillm.MarshalProviderType(TypeProviderMetadata, plain(m))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderMetadata.
 func (m *ProviderMetadata) UnmarshalJSON(data []byte) error {
 	type plain ProviderMetadata
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*m = ProviderMetadata(p)
@@ -106,14 +106,14 @@ func (*ProviderOptions) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderOptions.
 func (o ProviderOptions) MarshalJSON() ([]byte, error) {
 	type plain ProviderOptions
-	return fantasy.MarshalProviderType(TypeProviderOptions, plain(o))
+	return unillm.MarshalProviderType(TypeProviderOptions, plain(o))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderOptions.
 func (o *ProviderOptions) UnmarshalJSON(data []byte) error {
 	type plain ProviderOptions
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*o = ProviderOptions(p)
@@ -131,14 +131,14 @@ func (*ProviderFileOptions) Options() {}
 // MarshalJSON implements custom JSON marshaling with type info for ProviderFileOptions.
 func (o ProviderFileOptions) MarshalJSON() ([]byte, error) {
 	type plain ProviderFileOptions
-	return fantasy.MarshalProviderType(TypeProviderFileOptions, plain(o))
+	return unillm.MarshalProviderType(TypeProviderFileOptions, plain(o))
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling with type info for ProviderFileOptions.
 func (o *ProviderFileOptions) UnmarshalJSON(data []byte) error {
 	type plain ProviderFileOptions
 	var p plain
-	if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+	if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 		return err
 	}
 	*o = ProviderFileOptions(p)
@@ -151,15 +151,15 @@ func ReasoningEffortOption(e ReasoningEffort) *ReasoningEffort {
 }
 
 // NewProviderOptions creates new provider options for OpenAI.
-func NewProviderOptions(opts *ProviderOptions) fantasy.ProviderOptions {
-	return fantasy.ProviderOptions{
+func NewProviderOptions(opts *ProviderOptions) unillm.ProviderOptions {
+	return unillm.ProviderOptions{
 		Name: opts,
 	}
 }
 
 // NewProviderFileOptions creates new file options for OpenAI.
-func NewProviderFileOptions(opts *ProviderFileOptions) fantasy.ProviderOptions {
-	return fantasy.ProviderOptions{
+func NewProviderFileOptions(opts *ProviderFileOptions) unillm.ProviderOptions {
+	return unillm.ProviderOptions{
 		Name: opts,
 	}
 }
@@ -167,7 +167,7 @@ func NewProviderFileOptions(opts *ProviderFileOptions) fantasy.ProviderOptions {
 // ParseOptions parses provider options from a map.
 func ParseOptions(data map[string]any) (*ProviderOptions, error) {
 	var options ProviderOptions
-	if err := fantasy.ParseOptions(data, &options); err != nil {
+	if err := unillm.ParseOptions(data, &options); err != nil {
 		return nil, err
 	}
 	return &options, nil

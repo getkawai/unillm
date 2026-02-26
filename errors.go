@@ -1,4 +1,4 @@
-package fantasy
+package unillm
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/x/exp/slice"
 )
 
-// Error is a custom error type for the fantasy package.
+// Error is a custom error type for the unillm package.
 type Error struct {
 	Message string
 	Title   string

@@ -1,4 +1,4 @@
-package fantasy
+package unillm
 
 import (
 	"encoding/json"
@@ -72,7 +72,7 @@ func UnmarshalProviderMetadata(data map[string]json.RawMessage) (ProviderMetadat
 //
 //	func (o ProviderOptions) MarshalJSON() ([]byte, error) {
 //	    type plain ProviderOptions
-//	    return fantasy.MarshalProviderType(TypeProviderOptions, plain(o))
+//	    return unillm.MarshalProviderType(TypeProviderOptions, plain(o))
 //	}
 func MarshalProviderType[T any](typeID string, data T) ([]byte, error) {
 	rawData, err := json.Marshal(data)
@@ -95,7 +95,7 @@ func MarshalProviderType[T any](typeID string, data T) ([]byte, error) {
 //	func (o *ProviderOptions) UnmarshalJSON(data []byte) error {
 //	    type plain ProviderOptions
 //	    var p plain
-//	    if err := fantasy.UnmarshalProviderType(data, &p); err != nil {
+//	    if err := unillm.UnmarshalProviderType(data, &p); err != nil {
 //	        return err
 //	    }
 //	    *o = ProviderOptions(p)
