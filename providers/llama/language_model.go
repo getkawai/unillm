@@ -21,11 +21,11 @@ const defaultBatchSize = 2048
 type languageModel struct {
 	provider     string
 	modelID      string
-	service      *llamalib.Service
+	service      *Service
 	toolRegistry *tools.ToolRegistry
 }
 
-func newLanguageModel(modelID string, provider string, service *llamalib.Service, toolRegistry *tools.ToolRegistry) *languageModel {
+func newLanguageModel(modelID string, provider string, service *Service, toolRegistry *tools.ToolRegistry) *languageModel {
 	return &languageModel{
 		modelID:      modelID,
 		provider:     provider,
@@ -377,16 +377,18 @@ func (l *languageModel) generateWithTokenCounts(ctx context.Context, prompt stri
 
 	promptTokens := len(tokens)
 
-	// Generate response
-	response, err := l.service.Generate(prompt, maxTokens)
+	var b strings.Builder
+	completionTokens, err := l.generateStreaming(ctx, prompt, maxTokens, func(token string, done bool) {
+		if done {
+			return
+		}
+		b.WriteString(token)
+	})
 	if err != nil {
 		return "", promptTokens, 0, err
 	}
 
-	// Estimate completion tokens
-	completionTokens := len(response) / 4
-
-	return response, promptTokens, completionTokens, nil
+	return b.String(), promptTokens, completionTokens, nil
 }
 
 // generateStreaming performs token-by-token generation with callback

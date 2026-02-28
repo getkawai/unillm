@@ -7,8 +7,8 @@ require (
 	github.com/RealAlexandreAI/json-repair v0.0.15
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260225200202-61df8bc4b903
 	github.com/charmbracelet/x/json v0.2.0
-	github.com/getkawai/llamalib v0.2.2
-	github.com/getkawai/tools v0.1.0
+	github.com/getkawai/llamalib v0.2.3
+	github.com/getkawai/tools v0.1.1
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/kaptinlin/jsonschema v0.7.3
@@ -40,7 +40,6 @@ require (
 	github.com/kaptinlin/jsonpointer v0.4.16 // indirect
 	github.com/kaptinlin/messageformat-go v0.4.18 // indirect
 	github.com/kawai-network/grab v0.1.0 // indirect
-	github.com/kawai-network/veridium v0.0.0-20260223154704-91e538e31def // indirect
 	github.com/kawai-network/y v0.1.14 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect

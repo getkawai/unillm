@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/getkawai/llamalib"
 	"github.com/getkawai/tools"
 	"github.com/getkawai/unillm"
 )
@@ -23,7 +22,7 @@ type Provider interface {
 	unillm.Provider
 
 	// Resource management
-	GetService() *llamalib.Service
+	GetService() *Service
 	Cleanup()
 }
 
@@ -33,7 +32,7 @@ type provider struct {
 
 type options struct {
 	name         string
-	service      *llamalib.Service
+	service      *Service
 	toolRegistry *tools.ToolRegistry
 	modelPath    string
 }
@@ -53,7 +52,7 @@ func New(opts ...Option) (Provider, error) {
 
 	// Create Service if not provided
 	if providerOptions.service == nil {
-		service := llamalib.NewService()
+		service := NewService()
 		providerOptions.service = service
 	}
 
@@ -67,8 +66,8 @@ func WithName(name string) Option {
 	}
 }
 
-// WithService sets a pre-configured llamalib.Service.
-func WithService(service *llamalib.Service) Option {
+// WithService sets a pre-configured Service.
+func WithService(service *Service) Option {
 	return func(o *options) {
 		o.service = service
 	}
@@ -124,8 +123,8 @@ func (p *provider) Name() string {
 	return p.options.name
 }
 
-// GetService returns the underlying llamalib.Service for advanced usage.
-func (p *provider) GetService() *llamalib.Service {
+// GetService returns the underlying Service for advanced usage.
+func (p *provider) GetService() *Service {
 	return p.options.service
 }
 

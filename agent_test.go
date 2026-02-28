@@ -1344,7 +1344,7 @@ func TestToolCallRepair(t *testing.T) {
 		toolCalls := result.Steps[0].Content.ToolCalls()
 		require.Len(t, toolCalls, 1)
 		require.True(t, toolCalls[0].Invalid) // Should be invalid
-		require.Contains(t, toolCalls[0].ValidationError.Error(), "missing required parameter: value")
+		require.Contains(t, toolCalls[0].ValidationError.Error(), "schema validation failed")
 	})
 
 	t.Run("Invalid tool call with successful repair", func(t *testing.T) {
@@ -1449,7 +1449,7 @@ func TestToolCallRepair(t *testing.T) {
 		toolCalls := result.Steps[0].Content.ToolCalls()
 		require.Len(t, toolCalls, 1)
 		require.True(t, toolCalls[0].Invalid) // Should be invalid
-		require.Contains(t, toolCalls[0].ValidationError.Error(), "missing required parameter: value")
+		require.Contains(t, toolCalls[0].ValidationError.Error(), "schema validation failed")
 	})
 
 	t.Run("Nonexistent tool call", func(t *testing.T) {
@@ -1533,5 +1533,46 @@ func TestToolCallRepair(t *testing.T) {
 		require.Len(t, toolCalls, 1)
 		require.True(t, toolCalls[0].Invalid) // Should be invalid
 		require.Contains(t, toolCalls[0].ValidationError.Error(), "invalid JSON input")
+	})
+
+	t.Run("Invalid tool parameter type", func(t *testing.T) {
+		t.Parallel()
+		model := &mockLanguageModel{
+			generateFunc: func(ctx context.Context, call Call) (*Response, error) {
+				return &Response{
+					Content: ResponseContent{
+						TextContent{Text: "Response"},
+						ToolCallContent{
+							ToolCallID: "call1",
+							ToolName:   "test_tool",
+							Input:      `{"value": 123}`,
+						},
+					},
+					Usage:        Usage{TotalTokens: 10},
+					FinishReason: FinishReasonStop,
+				}, nil
+			},
+		}
+
+		tool := &mockTool{
+			name:        "test_tool",
+			description: "Test tool",
+			parameters: map[string]any{
+				"value": map[string]any{"type": "string"},
+			},
+			required: []string{"value"},
+		}
+
+		agent := NewAgent(model, WithTools(tool), WithStopConditions(StepCountIs(2)))
+		result, err := agent.Generate(context.Background(), AgentCall{Prompt: "test prompt"})
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Len(t, result.Steps, 1)
+
+		toolCalls := result.Steps[0].Content.ToolCalls()
+		require.Len(t, toolCalls, 1)
+		require.True(t, toolCalls[0].Invalid)
+		require.Contains(t, toolCalls[0].ValidationError.Error(), "schema validation failed")
 	})
 }

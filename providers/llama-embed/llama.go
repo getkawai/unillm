@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/getkawai/llamalib/llama"
@@ -196,10 +197,13 @@ func (e *LlamaEmbedder) generateEmbedding(text string) ([]float32, error) {
 
 // expandPath expands ~ to home directory in paths.
 func expandPath(path string) string {
-	if len(path) > 0 && path[0] == '~' {
+	if path == "~" || strings.HasPrefix(path, "~/") {
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
-			return filepath.Join(homeDir, path[1:])
+			if path == "~" {
+				return homeDir
+			}
+			return filepath.Join(homeDir, path[2:])
 		}
 	}
 	return path

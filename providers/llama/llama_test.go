@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getkawai/llamalib/message"
 	"github.com/getkawai/unillm"
 	"github.com/stretchr/testify/require"
 )
@@ -293,7 +294,7 @@ func TestConvertToTemplateMessages(t *testing.T) {
 
 	model := &languageModel{}
 
-	t.Run("should pass through unillm.Prompt unchanged", func(t *testing.T) {
+	t.Run("should convert unillm.Prompt to template messages", func(t *testing.T) {
 		t.Parallel()
 
 		prompt := unillm.Prompt{
@@ -309,8 +310,10 @@ func TestConvertToTemplateMessages(t *testing.T) {
 
 		result := model.convertToTemplateMessages(prompt)
 
-		require.Equal(t, prompt, result)
 		require.Len(t, result, 3)
+		require.Equal(t, message.Chat{Role: "system", Content: "You are helpful."}, result[0])
+		require.Equal(t, message.Chat{Role: "user", Content: "Hello"}, result[1])
+		require.Equal(t, message.Chat{Role: "assistant", Content: "Hi there!"}, result[2])
 	})
 }
 
