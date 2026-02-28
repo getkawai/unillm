@@ -116,8 +116,56 @@ func TestChainGenerateStopsWhenContextEnded(t *testing.T) {
 
 	_, err = chain.Generate(ctx, Call{})
 	require.Error(t, err)
+	require.ErrorIs(t, err, context.Canceled)
 	require.ErrorContains(t, err, "context ended")
 	require.Equal(t, 1, firstCalls)
+	require.Equal(t, 0, secondCalls)
+}
+
+func TestChainCircuitBreakerNotPoisonedByCanceledContext(t *testing.T) {
+	t.Parallel()
+
+	firstCalls := 0
+	secondCalls := 0
+
+	first := &chainStubModel{
+		provider: "p1",
+		model:    "m1",
+		generate: func(ctx context.Context, _ Call) (*Response, error) {
+			firstCalls++
+			if ctx.Err() != nil {
+				return nil, errors.New("failed while context ended")
+			}
+			return &Response{
+				Content: []Content{TextContent{Text: "ok"}},
+			}, nil
+		},
+	}
+	second := &chainStubModel{
+		provider: "p2",
+		model:    "m2",
+		generate: func(context.Context, Call) (*Response, error) {
+			secondCalls++
+			return &Response{}, nil
+		},
+	}
+
+	chain, err := NewChain([]LanguageModel{first, second}, WithCircuitBreaker(1, 0))
+	require.NoError(t, err)
+
+	cancelledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err = chain.Generate(cancelledCtx, Call{})
+	require.Error(t, err)
+	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorContains(t, err, "context ended")
+
+	resp, err := chain.Generate(context.Background(), Call{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "ok", resp.Content.Text())
+	require.Equal(t, 2, firstCalls)
 	require.Equal(t, 0, secondCalls)
 }
 
@@ -241,6 +289,58 @@ func TestChainStreamObjectStopsWhenContextEnded(t *testing.T) {
 	}
 
 	require.Error(t, streamErr)
+	require.ErrorIs(t, streamErr, context.Canceled)
+	require.ErrorContains(t, streamErr, "context ended")
+	require.Equal(t, 1, firstCalls)
+	require.Equal(t, 0, secondCalls)
+}
+
+func TestChainStreamObjectStopsFallbackOnMidStreamContextEnd(t *testing.T) {
+	t.Parallel()
+
+	firstCalls := 0
+	secondCalls := 0
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	first := &chainStubModel{
+		provider: "p1",
+		model:    "m1",
+		streamObject: func(context.Context, ObjectCall) (ObjectStreamResponse, error) {
+			firstCalls++
+			return func(yield func(ObjectStreamPart) bool) {
+				cancel()
+				yield(ObjectStreamPart{
+					Type:  ObjectStreamPartTypeError,
+					Error: context.Canceled,
+				})
+			}, nil
+		},
+	}
+	second := &chainStubModel{
+		provider: "p2",
+		model:    "m2",
+		streamObject: func(context.Context, ObjectCall) (ObjectStreamResponse, error) {
+			secondCalls++
+			return nil, errors.New("should not be called")
+		},
+	}
+
+	chain, err := NewChain([]LanguageModel{first, second})
+	require.NoError(t, err)
+
+	stream, err := chain.StreamObject(ctx, ObjectCall{})
+	require.NoError(t, err)
+
+	var streamErr error
+	for part := range stream {
+		if part.Error != nil {
+			streamErr = part.Error
+		}
+	}
+
+	require.Error(t, streamErr)
+	require.ErrorIs(t, streamErr, context.Canceled)
 	require.ErrorContains(t, streamErr, "context ended")
 	require.Equal(t, 1, firstCalls)
 	require.Equal(t, 0, secondCalls)

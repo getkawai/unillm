@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/getkawai/llamalib"
-	llamaapi "github.com/getkawai/llamalib/llama"
+	"github.com/getkawai/unillm/internal/llamautil"
 )
 
 const (
@@ -17,18 +17,12 @@ const (
 	Name = "llama-vl"
 )
 
-var runtimeState struct {
-	mu    sync.Mutex
-	ready bool
-}
-
 // Service keeps runtime and selected VL model metadata.
 type Service struct {
 	mu sync.Mutex
 
 	installer     *llamalib.LlamaCppInstaller
 	loadedVLModel string
-	runtimeReady  bool
 }
 
 // NewService creates a new VL service.
@@ -39,28 +33,7 @@ func NewService() *Service {
 }
 
 func (s *Service) ensureRuntime() error {
-	runtimeState.mu.Lock()
-	defer runtimeState.mu.Unlock()
-
-	if runtimeState.ready {
-		s.runtimeReady = true
-		return nil
-	}
-
-	if !s.installer.IsLlamaCppInstalled() {
-		if err := s.installer.InstallLlamaCpp(); err != nil {
-			return fmt.Errorf("install llama.cpp runtime: %w", err)
-		}
-	}
-
-	if err := llamaapi.Load(s.installer.GetLibraryPath()); err != nil {
-		return fmt.Errorf("load llama runtime libraries: %w", err)
-	}
-	llamaapi.Init()
-
-	runtimeState.ready = true
-	s.runtimeReady = true
-	return nil
+	return llamautil.EnsureLlamaRuntime(s.installer)
 }
 
 // WaitForInitialization ensures llama runtime is available.
@@ -74,6 +47,9 @@ func (s *Service) WaitForInitialization(ctx context.Context) error {
 }
 
 // LoadVLModel resolves and records the VL model path for future use.
+// For llamalib >= 0.2.3, full VL model/context initialization is intentionally
+// deferred; this method validates runtime availability via s.ensureRuntime and records
+// s.loadedVLModel after resolving/downloading via installer.AutoDownloadRecommendedVLModel.
 func (s *Service) LoadVLModel(modelPath string) error {
 	if err := s.ensureRuntime(); err != nil {
 		return err

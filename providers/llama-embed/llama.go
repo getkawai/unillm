@@ -8,10 +8,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/getkawai/llamalib/llama"
+	"github.com/getkawai/unillm/internal/pathutil"
 )
 
 const defaultContextSize = 2048
@@ -51,7 +51,7 @@ func NewLlamaEmbedder(config *LlamaConfig) (*LlamaEmbedder, error) {
 	}
 
 	// Expand home directory in model path
-	modelPath := expandPath(config.ModelPath)
+	modelPath := pathutil.ExpandUserPath(config.ModelPath)
 
 	// Validate model file exists
 	if _, err := os.Stat(modelPath); err != nil {
@@ -193,20 +193,6 @@ func (e *LlamaEmbedder) generateEmbedding(text string) ([]float32, error) {
 
 	// Normalize embeddings using L2 norm
 	return normalizeVector(vec), nil
-}
-
-// expandPath expands ~ to home directory in paths.
-func expandPath(path string) string {
-	if path == "~" || strings.HasPrefix(path, "~/") {
-		homeDir, err := os.UserHomeDir()
-		if err == nil {
-			if path == "~" {
-				return homeDir
-			}
-			return filepath.Join(homeDir, path[2:])
-		}
-	}
-	return path
 }
 
 // normalizeVector normalizes a vector using L2 norm.

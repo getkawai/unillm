@@ -187,5 +187,5 @@ func (o *provider) LanguageModel(_ context.Context, modelID string) (unillm.Lang
 }
 
 func (o *provider) Name() string {
-	return Name
+	return o.options.name
 }

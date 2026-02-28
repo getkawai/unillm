@@ -3,20 +3,14 @@ package llama
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/getkawai/llamalib"
 	llamaapi "github.com/getkawai/llamalib/llama"
+	"github.com/getkawai/unillm/internal/llamautil"
+	"github.com/getkawai/unillm/internal/pathutil"
 )
-
-var runtimeState struct {
-	mu    sync.Mutex
-	ready bool
-}
 
 // Service wraps low-level llama.cpp runtime/model resources.
 type Service struct {
@@ -38,29 +32,6 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) ensureRuntime() error {
-	runtimeState.mu.Lock()
-	defer runtimeState.mu.Unlock()
-
-	if runtimeState.ready {
-		return nil
-	}
-
-	if !s.installer.IsLlamaCppInstalled() {
-		if err := s.installer.InstallLlamaCpp(); err != nil {
-			return fmt.Errorf("install llama.cpp runtime: %w", err)
-		}
-	}
-
-	if err := llamaapi.Load(s.installer.GetLibraryPath()); err != nil {
-		return fmt.Errorf("load llama runtime libraries: %w", err)
-	}
-	llamaapi.Init()
-
-	runtimeState.ready = true
-	return nil
-}
-
 // WaitForInitialization ensures llama runtime is available.
 func (s *Service) WaitForInitialization(ctx context.Context) error {
 	select {
@@ -68,7 +39,7 @@ func (s *Service) WaitForInitialization(ctx context.Context) error {
 		return ctx.Err()
 	default:
 	}
-	return s.ensureRuntime()
+	return llamautil.EnsureLlamaRuntime(s.installer)
 }
 
 // IsChatModelLoaded reports whether chat resources are available.
@@ -87,7 +58,7 @@ func (s *Service) GetLoadedChatModel() string {
 
 func (s *Service) resolveChatModelPath(modelPath string) (string, error) {
 	if modelPath != "" {
-		return expandUserPath(modelPath), nil
+		return pathutil.ExpandUserPath(modelPath), nil
 	}
 
 	available, err := s.installer.GetAvailableTextModels()
@@ -133,7 +104,7 @@ func (s *Service) releaseChatLocked() {
 
 // LoadChatModel loads a chat model and initializes generation resources.
 func (s *Service) LoadChatModel(modelPath string) error {
-	if err := s.ensureRuntime(); err != nil {
+	if err := llamautil.EnsureLlamaRuntime(s.installer); err != nil {
 		return err
 	}
 
@@ -212,19 +183,4 @@ func (s *Service) Cleanup() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.releaseChatLocked()
-}
-
-func expandUserPath(path string) string {
-	if path == "~" {
-		if home, err := os.UserHomeDir(); err == nil {
-			return home
-		}
-		return path
-	}
-	if strings.HasPrefix(path, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, path[2:])
-		}
-	}
-	return path
 }

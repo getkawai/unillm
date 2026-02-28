@@ -191,7 +191,6 @@ func (c *ChainLanguageModel) Generate(ctx context.Context, call Call) (*Response
 			return resp, nil
 		}
 
-		c.recordFailure(i)
 		lastErr = err
 		log.Printf("⚠️  Chain[%s]: Model %s failed: %v", c.name, modelName, err)
 
@@ -200,6 +199,7 @@ func (c *ChainLanguageModel) Generate(ctx context.Context, call Call) (*Response
 		if errCtx := ctx.Err(); errCtx != nil {
 			return nil, fmt.Errorf("context ended: %w", errCtx)
 		}
+		c.recordFailure(i)
 	}
 
 	return nil, c.chainError("all models failed", attemptedModels, lastErr)
@@ -377,7 +377,6 @@ func (c *ChainLanguageModel) GenerateObject(ctx context.Context, call ObjectCall
 			return resp, nil
 		}
 
-		c.recordFailure(i)
 		lastErr = err
 		log.Printf("⚠️  Chain[%s]: GenerateObject %s failed: %v", c.name, modelName, err)
 
@@ -386,6 +385,7 @@ func (c *ChainLanguageModel) GenerateObject(ctx context.Context, call ObjectCall
 		if errCtx := ctx.Err(); errCtx != nil {
 			return nil, fmt.Errorf("context ended: %w", errCtx)
 		}
+		c.recordFailure(i)
 	}
 
 	return nil, c.chainError("all models failed", attemptedModels, lastErr)
@@ -434,6 +434,12 @@ func (c *ChainLanguageModel) StreamObject(ctx context.Context, call ObjectCall) 
 			for part := range stream {
 				// Check for errors in the stream
 				if part.Error != nil {
+					// Stop immediately if parent context ended. Do not
+					// fallback on mid-stream context cancellation/deadline.
+					if errCtx := ctx.Err(); errCtx != nil {
+						yield(ObjectStreamPart{Error: fmt.Errorf("context ended: %w", errCtx)})
+						return
+					}
 					// Mid-stream failure detected!
 					c.recordFailure(i)
 					lastErr = part.Error
