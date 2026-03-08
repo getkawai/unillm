@@ -50,6 +50,10 @@ jobs:
         env:
           NEXT_TAG: ${{ steps.next.outputs.next_tag }}
         run: |
+          if git tag -l "${NEXT_TAG}" | grep -q "${NEXT_TAG}"; then
+            echo "Tag ${NEXT_TAG} already exists; skipping."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "${NEXT_TAG}" -m "Release ${NEXT_TAG}"
