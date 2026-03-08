@@ -9,6 +9,8 @@ import (
 	"maps"
 	"slices"
 	"sync"
+
+	"github.com/kaptinlin/jsonschema"
 )
 
 // StepResult represents the result of a single step in an agent execution.
@@ -1053,14 +1055,35 @@ func (a *agent) validateToolCall(toolCall ToolCallContent, availableTools []Agen
 		return fmt.Errorf("invalid JSON input: %w", err)
 	}
 
-	// Basic schema validation (check required fields)
-	// TODO: more robust schema validation using JSON Schema or similar
 	toolInfo := tool.Info()
-	for _, required := range toolInfo.Required {
-		if _, exists := input[required]; !exists {
-			return fmt.Errorf("missing required parameter: %s", required)
-		}
+
+	schemaMap := map[string]any{
+		"type":       "object",
+		"properties": toolInfo.Parameters,
 	}
+	if len(toolInfo.Required) > 0 {
+		schemaMap["required"] = toolInfo.Required
+	}
+
+	schemaBytes, err := json.Marshal(schemaMap)
+	if err != nil {
+		return fmt.Errorf("invalid tool schema: %w", err)
+	}
+
+	compiler := jsonschema.NewCompiler()
+	validator, err := compiler.Compile(schemaBytes)
+	if err != nil {
+		return fmt.Errorf("invalid tool schema: %w", err)
+	}
+
+	result := validator.Validate(input)
+	if !result.IsValid() {
+		for field, validationErr := range result.Errors {
+			return fmt.Errorf("schema validation failed for %s: %s", field, validationErr.Message)
+		}
+		return fmt.Errorf("schema validation failed")
+	}
+
 	return nil
 }
 

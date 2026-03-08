@@ -24,10 +24,14 @@ github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/getkawai/llamalib v0.2.2 h1:mYMiqluS7quDJzsK61Ci08uO60ToJ7X0z3z04NKlM/o=
-github.com/getkawai/llamalib v0.2.2/go.mod h1:uOSQjy8YtMsDU2+iO42MgVbbbZ7vTKyTPEcXkIIIIVU=
-github.com/getkawai/tools v0.1.0 h1:30s/sjR30R/CZtl2xCQT0VPo3AuL482el+CC7UNEbT4=
-github.com/getkawai/tools v0.1.0/go.mod h1:HlHm0XBS7XNNU8r8pAbFgFar5kSs+57KVirxExu3zM8=
+github.com/getkawai/llamalib v0.2.3 h1:Jn6uHRqxjK1fTriZEfJqqn21lD/gSr41vNDOd/21Q/U=
+github.com/getkawai/llamalib v0.2.3/go.mod h1:PWJFfpb8FTShwwMgFtYT6CbNvF9vR9ZWCTxeSUTcMVc=
+github.com/getkawai/llamalib v0.2.4 h1://ADVa1dTV8Lb0pY9dCPEIv23mU26J11PgPxpU578/g=
+github.com/getkawai/llamalib v0.2.4/go.mod h1:FK/AlntM54HXd56epgNfOIYlA7dQtUt+VzQWHGfG9n4=
+github.com/getkawai/tools v0.1.1 h1:DbUwTkND7t5fSQEBfw+5mJY+fL9Z4fSusO/w4SLtE1I=
+github.com/getkawai/tools v0.1.1/go.mod h1:856cjJSlczKvW3npII2Wv6hL4xS+CsBTtD1MdDYU/sI=
+github.com/getkawai/tools v0.1.5 h1:bNQaUTS+oOwGROZGDPl5ikZa527TtPqrH/tGnIt9rLQ=
+github.com/getkawai/tools v0.1.5/go.mod h1:3Fxru8JPbWGVaE/o8kzuvYuDT8ux2F4Jp7Ngg1xS2R0=
 github.com/go-json-experiment/json v0.0.0-20251027170946-4849db3c2f7e h1:Lf/gRkoycfOBPa42vU2bbgPurFong6zXeFtPoxholzU=
 github.com/go-json-experiment/json v0.0.0-20251027170946-4849db3c2f7e/go.mod h1:uNVvRXArCGbZ508SxYYTC5v1JWoz2voff5pm25jU1Ok=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
@@ -72,8 +76,6 @@ github.com/kaptinlin/messageformat-go v0.4.18 h1:RBlHVWgZyoxTcUgGWBsl2AcyScq/urq
 github.com/kaptinlin/messageformat-go v0.4.18/go.mod h1:ntI3154RnqJgr7GaC+vZBnIExl2V3sv9selvRNNEM24=
 github.com/kawai-network/grab v0.1.0 h1:fqL+IK+AjvyB0F3Rab0xFOw0+jTZawiqQnumgmIWmNs=
 github.com/kawai-network/grab v0.1.0/go.mod h1:yZ+7Bf10u8Dgr3GtAHgLv37wOSXewtU3GlxD/kNhqks=
-github.com/kawai-network/veridium v0.0.0-20260223154704-91e538e31def h1:rQTG561BS6tj+etSotzNc4hYmvIrJMGcq9NXIgElT1g=
-github.com/kawai-network/veridium v0.0.0-20260223154704-91e538e31def/go.mod h1:+1qkhX1myh/TaQ+oRAj7tFiM0dehSJWH7w6W9go8Jg8=
 github.com/kawai-network/y v0.1.14 h1:FH+/xIh3KIG3n7BoVZ435nOB6k41o8/7XrBV9jCiByQ=
 github.com/kawai-network/y v0.1.14/go.mod h1:eGBQA+pB+NbTklBBpNwAyEx+rNvN5+dxmeec+L/4TDc=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=

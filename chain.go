@@ -163,7 +163,7 @@ func (c *ChainLanguageModel) recordSuccess(idx int) {
 }
 
 // Generate tries each model in order until one succeeds.
-// Timeout errors trigger fallback to next model with fresh context.
+// Timeout-like model errors can trigger fallback to the next model.
 func (c *ChainLanguageModel) Generate(ctx context.Context, call Call) (*Response, error) {
 	var lastErr error
 	var attemptedModels []string
@@ -182,10 +182,7 @@ func (c *ChainLanguageModel) Generate(ctx context.Context, call Call) (*Response
 		log.Printf("🔀 Chain[%s]: Trying model %d/%d (%s)",
 			c.name, i+1, len(c.models), modelName)
 
-		// Create fresh context for each model
-		modelCtx := ctx
-
-		resp, err := model.Generate(modelCtx, call)
+		resp, err := model.Generate(ctx, call)
 		if err == nil {
 			c.recordSuccess(i)
 			if i > 0 {
@@ -194,20 +191,18 @@ func (c *ChainLanguageModel) Generate(ctx context.Context, call Call) (*Response
 			return resp, nil
 		}
 
-		c.recordFailure(i)
 		lastErr = err
 		log.Printf("⚠️  Chain[%s]: Model %s failed: %v", c.name, modelName, err)
 
-		// Only stop if user explicitly cancelled (not timeout)
-		// Timeout should trigger fallback to local model
-		if ctx.Err() == context.Canceled {
-			return nil, fmt.Errorf("context cancelled: %w", ctx.Err())
+		// Stop if the parent context has ended. In that case no further fallback
+		// attempts can succeed with the same context.
+		if errCtx := ctx.Err(); errCtx != nil {
+			return nil, fmt.Errorf("context ended: %w", errCtx)
 		}
-		// For DeadlineExceeded (timeout), continue to next model
+		c.recordFailure(i)
 	}
 
-	return nil, fmt.Errorf("all models failed (tried: %s): %w",
-		strings.Join(attemptedModels, ", "), lastErr)
+	return nil, c.chainError("all models failed", attemptedModels, lastErr)
 }
 
 // Stream tries each model in order.
@@ -352,7 +347,7 @@ func (c *ChainLanguageModel) Stream(ctx context.Context, call Call) (StreamRespo
 		}
 
 		// If we exhausted all models, yield the final error
-		finalErr := fmt.Errorf("all chain models failed (tried: %s): %w", strings.Join(attemptedModels, ", "), lastErr)
+		finalErr := c.chainError("all chain models failed", attemptedModels, lastErr)
 		yield(StreamPart{
 			Type:  StreamPartTypeError,
 			Error: finalErr,
@@ -361,7 +356,7 @@ func (c *ChainLanguageModel) Stream(ctx context.Context, call Call) (StreamRespo
 }
 
 // GenerateObject tries each model in order until one succeeds.
-// Timeout errors trigger fallback to next model with fresh context.
+// Timeout-like model errors can trigger fallback to the next model.
 func (c *ChainLanguageModel) GenerateObject(ctx context.Context, call ObjectCall) (*ObjectResponse, error) {
 	var lastErr error
 	var attemptedModels []string
@@ -376,29 +371,24 @@ func (c *ChainLanguageModel) GenerateObject(ctx context.Context, call ObjectCall
 		modelName := fmt.Sprintf("%s/%s", model.Provider(), model.Model())
 		attemptedModels = append(attemptedModels, modelName)
 
-		// Create fresh context for each model
-		modelCtx := ctx
-
-		resp, err := model.GenerateObject(modelCtx, call)
+		resp, err := model.GenerateObject(ctx, call)
 		if err == nil {
 			c.recordSuccess(i)
 			return resp, nil
 		}
 
-		c.recordFailure(i)
 		lastErr = err
 		log.Printf("⚠️  Chain[%s]: GenerateObject %s failed: %v", c.name, modelName, err)
 
-		// Only stop if user explicitly cancelled (not timeout)
-		// Timeout should trigger fallback to next model
-		if ctx.Err() == context.Canceled {
-			return nil, fmt.Errorf("context cancelled: %w", ctx.Err())
+		// Stop if the parent context has ended. In that case no further fallback
+		// attempts can succeed with the same context.
+		if errCtx := ctx.Err(); errCtx != nil {
+			return nil, fmt.Errorf("context ended: %w", errCtx)
 		}
-		// For DeadlineExceeded (timeout), continue to next model
+		c.recordFailure(i)
 	}
 
-	return nil, fmt.Errorf("all models failed (tried: %s): %w",
-		strings.Join(attemptedModels, ", "), lastErr)
+	return nil, c.chainError("all models failed", attemptedModels, lastErr)
 }
 
 // StreamObject tries each model in order until one succeeds.
@@ -429,9 +419,11 @@ func (c *ChainLanguageModel) StreamObject(ctx context.Context, call ObjectCall) 
 				lastErr = err
 				log.Printf("⚠️  Chain[%s]: StreamObject setup failed for %s: %v", c.name, modelName, err)
 
-				// Only stop if user explicitly cancelled (not timeout)
-				if ctx.Err() == context.Canceled {
-					yield(ObjectStreamPart{Error: fmt.Errorf("context cancelled: %w", ctx.Err())})
+				// Stop immediately if parent context has already ended
+				// (e.g. canceled or deadline exceeded). Further fallbacks
+				// cannot succeed with the same context.
+				if errCtx := ctx.Err(); errCtx != nil {
+					yield(ObjectStreamPart{Error: fmt.Errorf("context ended: %w", errCtx)})
 					return
 				}
 				continue // Try next model
@@ -442,6 +434,12 @@ func (c *ChainLanguageModel) StreamObject(ctx context.Context, call ObjectCall) 
 			for part := range stream {
 				// Check for errors in the stream
 				if part.Error != nil {
+					// Stop immediately if parent context ended. Do not
+					// fallback on mid-stream context cancellation/deadline.
+					if errCtx := ctx.Err(); errCtx != nil {
+						yield(ObjectStreamPart{Error: fmt.Errorf("context ended: %w", errCtx)})
+						return
+					}
 					// Mid-stream failure detected!
 					c.recordFailure(i)
 					lastErr = part.Error
@@ -468,9 +466,19 @@ func (c *ChainLanguageModel) StreamObject(ctx context.Context, call ObjectCall) 
 		}
 
 		// If we exhausted all models, yield the final error
-		finalErr := fmt.Errorf("all chain models failed StreamObject (tried: %s): %w", strings.Join(attemptedModels, ", "), lastErr)
+		finalErr := c.chainError("all chain models failed StreamObject", attemptedModels, lastErr)
 		yield(ObjectStreamPart{Error: finalErr})
 	}, nil
+}
+
+func (c *ChainLanguageModel) chainError(prefix string, attemptedModels []string, lastErr error) error {
+	if len(attemptedModels) == 0 {
+		return fmt.Errorf("%s: no available models (all circuits open)", prefix)
+	}
+	if lastErr == nil {
+		return fmt.Errorf("%s (tried: %s)", prefix, strings.Join(attemptedModels, ", "))
+	}
+	return fmt.Errorf("%s (tried: %s): %w", prefix, strings.Join(attemptedModels, ", "), lastErr)
 }
 
 // Provider returns "chain" as the provider name.
