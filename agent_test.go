@@ -1576,3 +1576,171 @@ func TestToolCallRepair(t *testing.T) {
 		require.Contains(t, toolCalls[0].ValidationError.Error(), "schema validation failed")
 	})
 }
+
+// Benchmark tests for Agent functionality
+
+func BenchmarkAgent_Generate_Basic(b *testing.B) {
+	model := &mockLanguageModel{
+		generateFunc: func(ctx context.Context, call Call) (*Response, error) {
+			return &Response{
+				Content: []Content{TextContent{Text: "Hello, world!"}},
+				Usage:   Usage{InputTokens: 3, OutputTokens: 10, TotalTokens: 13},
+			}, nil
+		},
+	}
+	agent := NewAgent(model)
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = agent.Generate(ctx, AgentCall{Prompt: "test prompt"})
+	}
+}
+
+func BenchmarkAgent_Generate_WithTools(b *testing.B) {
+	type TestInput struct {
+		Value string `json:"value" description:"Test value"`
+	}
+
+	tool := NewAgentTool(
+		"tool1",
+		"Test tool",
+		func(ctx context.Context, input TestInput, _ ToolCall) (ToolResponse, error) {
+			return ToolResponse{Content: "result", IsError: false}, nil
+		},
+	)
+
+	model := &mockLanguageModel{
+		generateFunc: func(ctx context.Context, call Call) (*Response, error) {
+			return &Response{
+				Content: []Content{TextContent{Text: "Result"}},
+				Usage:   Usage{InputTokens: 5, OutputTokens: 8, TotalTokens: 13},
+			}, nil
+		},
+	}
+	agent := NewAgent(model, WithTools(tool))
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = agent.Generate(ctx, AgentCall{Prompt: "test prompt"})
+	}
+}
+
+func BenchmarkAgent_Generate_MultiStep(b *testing.B) {
+	type TestInput struct {
+		Value string `json:"value" description:"Test value"`
+	}
+
+	tool := NewAgentTool(
+		"tool1",
+		"Test tool",
+		func(ctx context.Context, input TestInput, _ ToolCall) (ToolResponse, error) {
+			return ToolResponse{Content: "result", IsError: false}, nil
+		},
+	)
+
+	callCount := 0
+	model := &mockLanguageModel{
+		generateFunc: func(ctx context.Context, call Call) (*Response, error) {
+			callCount++
+			if callCount == 1 {
+				return &Response{
+					Content: []Content{ToolCallContent{
+						ToolCallID: "call-1",
+						ToolName:   "tool1",
+						Input:      `{"value":"test"}`,
+					}},
+					Usage:        Usage{InputTokens: 10, OutputTokens: 5, TotalTokens: 15},
+					FinishReason: FinishReasonToolCalls,
+				}, nil
+			}
+			return &Response{
+				Content: []Content{TextContent{Text: "Final response"}},
+				Usage:   Usage{InputTokens: 3, OutputTokens: 10, TotalTokens: 13},
+			}, nil
+		},
+	}
+	agent := NewAgent(model, WithTools(tool))
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		callCount = 0
+		_, _ = agent.Generate(ctx, AgentCall{Prompt: "test prompt"})
+	}
+}
+
+func BenchmarkAgent_Stream_Basic(b *testing.B) {
+	model := &mockLanguageModel{
+		streamFunc: func(ctx context.Context, call Call) (StreamResponse, error) {
+			return func(yield func(StreamPart) bool) {
+				yield(StreamPart{Type: StreamPartTypeTextStart, ID: "text-1"})
+				yield(StreamPart{Type: StreamPartTypeTextDelta, ID: "text-1", Delta: "Hello"})
+				yield(StreamPart{Type: StreamPartTypeTextEnd, ID: "text-1"})
+				yield(StreamPart{Type: StreamPartTypeFinish, Usage: Usage{InputTokens: 3, OutputTokens: 10, TotalTokens: 13}})
+			}, nil
+		},
+	}
+	agent := NewAgent(model)
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = agent.Stream(ctx, AgentStreamCall{Prompt: "test prompt"})
+	}
+}
+
+func BenchmarkResponseContent_Text(b *testing.B) {
+	content := ResponseContent{
+		TextContent{Text: "Hello world"},
+		ReasoningContent{Text: "Thinking..."},
+		TextContent{Text: "More text"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = content.Text()
+	}
+}
+
+func BenchmarkResponseContent_ToolCalls(b *testing.B) {
+	content := ResponseContent{
+		ToolCallContent{ToolCallID: "1", ToolName: "tool1", Input: `{"a":"b"}`},
+		ToolCallContent{ToolCallID: "2", ToolName: "tool2", Input: `{"c":"d"}`},
+		TextContent{Text: "Some text"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = content.ToolCalls()
+	}
+}
+
+func BenchmarkStopConditions_StepCountIs(b *testing.B) {
+	steps := []StepResult{
+		{Response: Response{Usage: Usage{TotalTokens: 10}}},
+		{Response: Response{Usage: Usage{TotalTokens: 15}}},
+		{Response: Response{Usage: Usage{TotalTokens: 20}}},
+	}
+	condition := StepCountIs(2)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = condition(steps)
+	}
+}
+
+func BenchmarkStopConditions_MaxTokensUsed(b *testing.B) {
+	steps := []StepResult{
+		{Response: Response{Usage: Usage{TotalTokens: 10}}},
+		{Response: Response{Usage: Usage{TotalTokens: 15}}},
+		{Response: Response{Usage: Usage{TotalTokens: 20}}},
+	}
+	condition := MaxTokensUsed(30)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = condition(steps)
+	}
+}

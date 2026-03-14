@@ -750,3 +750,96 @@ func TestStreamPartErrorSerialization(t *testing.T) {
 		}
 	})
 }
+
+// Benchmark tests for JSON serialization
+
+func BenchmarkMessage_Marshal_JSON(b *testing.B) {
+	msg := Message{
+		Role: MessageRoleAssistant,
+		Content: []MessagePart{
+			TextPart{Text: "Hello, world!"},
+			ReasoningPart{Text: "Let me think..."},
+			ToolCallPart{
+				ToolCallID: "call_123",
+				ToolName:   "get_weather",
+				Input:      `{"location": "San Francisco"}`,
+			},
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = json.Marshal(msg)
+	}
+}
+
+func BenchmarkMessage_Unmarshal_JSON(b *testing.B) {
+	jsonData := `{
+		"role": "assistant",
+		"content": [
+			{"type": "text", "text": "Hello, world!"},
+			{"type": "reasoning", "text": "Let me think..."},
+			{
+				"type": "tool-call",
+				"tool_call_id": "call_123",
+				"tool_name": "get_weather",
+				"input": "{\"location\": \"San Francisco\"}"
+			}
+		]
+	}`
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var msg Message
+		_ = json.Unmarshal([]byte(jsonData), &msg)
+	}
+}
+
+func BenchmarkPrompt_Marshal_JSON(b *testing.B) {
+	prompt := Prompt{
+		NewSystemMessage("You are helpful"),
+		NewUserMessage("Hello", FilePart{
+			Filename:  "test.png",
+			Data:      []byte{0x89, 0x50, 0x4E, 0x47},
+			MediaType: "image/png",
+		}),
+		Message{
+			Role: MessageRoleAssistant,
+			Content: []MessagePart{
+				TextPart{Text: "Hi there!"},
+				ToolCallPart{
+					ToolCallID: "call_1",
+					ToolName:   "search",
+					Input:      `{"query": "test"}`,
+				},
+			},
+		},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = json.Marshal(prompt)
+	}
+}
+
+func BenchmarkPrompt_Unmarshal_JSON(b *testing.B) {
+	jsonData := `[
+		{
+			"role": "system",
+			"content": [{"type": "text", "text": "You are helpful"}]
+		},
+		{
+			"role": "user",
+			"content": [
+				{"type": "text", "text": "Hello"},
+				{"type": "file", "filename": "test.png", "media_type": "image/png", "data": "iVBORw0KGgo="}
+			]
+		}
+	]`
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var prompt Prompt
+		_ = json.Unmarshal([]byte(jsonData), &prompt)
+	}
+}

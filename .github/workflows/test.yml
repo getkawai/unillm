@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  go-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,4 +20,36 @@ jobs:
           cache: true
 
       - name: Run tests
-        run: go test ./...
+        run: go test -race -count=1 -coverprofile=coverage.out ./...
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run benchmarks
+        run: go test -bench=. -benchtime=1s -count=1 ./... -benchmem
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2

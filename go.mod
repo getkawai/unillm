@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260225200202-61df8bc4b903
 	github.com/charmbracelet/x/json v0.2.0
 	github.com/getkawai/llamalib v0.2.4
-	github.com/getkawai/tools v0.1.5
+	github.com/getkawai/tools v0.1.6
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/kaptinlin/jsonschema v0.7.3
@@ -58,7 +58,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect

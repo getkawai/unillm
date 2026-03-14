@@ -345,3 +345,79 @@ func TestChainStreamObjectStopsFallbackOnMidStreamContextEnd(t *testing.T) {
 	require.Equal(t, 1, firstCalls)
 	require.Equal(t, 0, secondCalls)
 }
+
+// Benchmark tests for Chain functionality
+
+func BenchmarkChain_Generate_SingleModel(b *testing.B) {
+	model := &chainStubModel{
+		provider: "test",
+		model:    "test-model",
+		generate: func(context.Context, Call) (*Response, error) {
+			return &Response{
+				Content: []Content{TextContent{Text: "ok"}},
+				Usage:   Usage{InputTokens: 5, OutputTokens: 10, TotalTokens: 15},
+			}, nil
+		},
+	}
+	chain, _ := NewChain([]LanguageModel{model})
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = chain.Generate(ctx, Call{})
+	}
+}
+
+func BenchmarkChain_Generate_Fallback(b *testing.B) {
+	firstCalls := 0
+	first := &chainStubModel{
+		provider: "p1",
+		model:    "m1",
+		generate: func(context.Context, Call) (*Response, error) {
+			firstCalls++
+			return nil, errors.New("upstream timeout")
+		},
+	}
+	second := &chainStubModel{
+		provider: "p2",
+		model:    "m2",
+		generate: func(context.Context, Call) (*Response, error) {
+			return &Response{
+				Content: []Content{TextContent{Text: "ok"}},
+				Usage:   Usage{InputTokens: 5, OutputTokens: 10, TotalTokens: 15},
+			}, nil
+		},
+	}
+	chain, _ := NewChain([]LanguageModel{first, second})
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		firstCalls = 0
+		_, _ = chain.Generate(ctx, Call{})
+	}
+}
+
+func BenchmarkChain_Stream_SingleModel(b *testing.B) {
+	model := &chainStubModel{
+		provider: "test",
+		model:    "test-model",
+		stream: func(context.Context, Call) (StreamResponse, error) {
+			return func(yield func(StreamPart) bool) {
+				yield(StreamPart{Type: StreamPartTypeTextStart, ID: "1"})
+				yield(StreamPart{Type: StreamPartTypeTextDelta, ID: "1", Delta: "Hello"})
+				yield(StreamPart{Type: StreamPartTypeTextEnd, ID: "1"})
+				yield(StreamPart{Type: StreamPartTypeFinish, Usage: Usage{InputTokens: 5, OutputTokens: 10, TotalTokens: 15}})
+			}, nil
+		},
+	}
+	chain, _ := NewChain([]LanguageModel{model})
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		stream, _ := chain.Stream(ctx, Call{})
+		for range stream {
+		}
+	}
+}
