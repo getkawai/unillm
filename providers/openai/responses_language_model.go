@@ -12,10 +12,10 @@ import (
 	"github.com/getkawai/unillm/object"
 	"github.com/getkawai/unillm/schema"
 	"github.com/google/uuid"
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/responses"
-	"github.com/openai/openai-go/v2/shared"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/packages/param"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 const topLogprobsMax = 20
@@ -714,11 +714,12 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call unillm.Call) 
 
 		case "function_call":
 			hasFunctionCall = true
+			funcCall := outputItem.AsFunctionCall()
 			content = append(content, unillm.ToolCallContent{
 				ProviderExecuted: false,
-				ToolCallID:       outputItem.CallID,
-				ToolName:         outputItem.Name,
-				Input:            outputItem.Arguments,
+				ToolCallID:       funcCall.CallID,
+				ToolName:         funcCall.Name,
+				Input:            funcCall.Arguments,
 			})
 
 		case "reasoning":
@@ -872,6 +873,7 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call unillm.Call) (u
 				done := event.AsResponseOutputItemDone()
 				switch done.Item.Type {
 				case "function_call":
+					funcCall := done.Item.AsFunctionCall()
 					tc := ongoingToolCalls[done.OutputIndex]
 					if tc != nil {
 						delete(ongoingToolCalls, done.OutputIndex)
@@ -879,41 +881,43 @@ func (o responsesLanguageModel) Stream(ctx context.Context, call unillm.Call) (u
 
 						if !yield(unillm.StreamPart{
 							Type: unillm.StreamPartTypeToolInputEnd,
-							ID:   done.Item.CallID,
+							ID:   funcCall.CallID,
 						}) {
 							return
 						}
 						if !yield(unillm.StreamPart{
 							Type:          unillm.StreamPartTypeToolCall,
-							ID:            done.Item.CallID,
-							ToolCallName:  done.Item.Name,
-							ToolCallInput: done.Item.Arguments,
+							ID:            funcCall.CallID,
+							ToolCallName:  funcCall.Name,
+							ToolCallInput: funcCall.Arguments,
 						}) {
 							return
 						}
 					}
 
 				case "message":
+					message := done.Item.AsMessage()
 					if !yield(unillm.StreamPart{
 						Type: unillm.StreamPartTypeTextEnd,
-						ID:   done.Item.ID,
+						ID:   message.ID,
 					}) {
 						return
 					}
 
 				case "reasoning":
-					state := activeReasoning[done.Item.ID]
+					reasoning := done.Item.AsReasoning()
+					state := activeReasoning[reasoning.ID]
 					if state != nil {
 						if !yield(unillm.StreamPart{
 							Type: unillm.StreamPartTypeReasoningEnd,
-							ID:   done.Item.ID,
+							ID:   reasoning.ID,
 							ProviderMetadata: unillm.ProviderMetadata{
 								Name: state.metadata,
 							},
 						}) {
 							return
 						}
-						delete(activeReasoning, done.Item.ID)
+						delete(activeReasoning, reasoning.ID)
 					}
 				}
 

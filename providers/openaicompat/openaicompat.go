@@ -4,7 +4,7 @@ package openaicompat
 import (
 	"github.com/getkawai/unillm"
 	"github.com/getkawai/unillm/providers/openai"
-	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v3/option"
 )
 
 type options struct {
