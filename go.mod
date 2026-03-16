@@ -14,7 +14,7 @@ require (
 	github.com/kaptinlin/jsonschema v0.7.3
 	github.com/openai/openai-go/v3 v3.28.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/genai v1.48.0
+	google.golang.org/genai v1.50.0
 )
 
 require (
