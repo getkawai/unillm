@@ -34,7 +34,6 @@ func init() {
 		return &out, nil
 	})
 }
-}
 
 // ReasoningEffort represents the reasoning effort level for Vercel AI Gateway.
 type ReasoningEffort string
