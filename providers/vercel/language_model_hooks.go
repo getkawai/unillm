@@ -114,13 +114,16 @@ func languageModelExtraContent(choice openaisdk.ChatCompletionChoice) []unillm.C
 
 	for _, detail := range reasoningData.ReasoningDetails {
 		if strings.HasPrefix(detail.Format, "openai-responses") || strings.HasPrefix(detail.Format, "xai-responses") {
-			var thinkingBlock openaipkg.ResponsesReasoningMetadata
-			if len(responsesReasoningBlocks)-1 >= detail.Index {
-				thinkingBlock = responsesReasoningBlocks[detail.Index]
-			} else {
-				thinkingBlock = openaipkg.ResponsesReasoningMetadata{}
-				responsesReasoningBlocks = append(responsesReasoningBlocks, thinkingBlock)
+			if detail.Index < 0 {
+				continue
 			}
+			if detail.Index >= len(responsesReasoningBlocks) {
+				responsesReasoningBlocks = append(
+					responsesReasoningBlocks,
+					make([]openaipkg.ResponsesReasoningMetadata, detail.Index-len(responsesReasoningBlocks)+1)...,
+				)
+			}
+			thinkingBlock := responsesReasoningBlocks[detail.Index]
 
 			switch detail.Type {
 			case "reasoning.summary":
@@ -136,18 +139,21 @@ func languageModelExtraContent(choice openaisdk.ChatCompletionChoice) []unillm.C
 		}
 
 		if strings.HasPrefix(detail.Format, "google-gemini") {
-			var thinkingBlock struct {
-				text     string
-				metadata *google.ReasoningMetadata
+			if detail.Index < 0 {
+				continue
 			}
-			if len(googleReasoningBlocks)-1 >= detail.Index {
-				thinkingBlock = googleReasoningBlocks[detail.Index]
-			} else {
-				thinkingBlock = struct {
-					text     string
-					metadata *google.ReasoningMetadata
-				}{metadata: &google.ReasoningMetadata{}}
-				googleReasoningBlocks = append(googleReasoningBlocks, thinkingBlock)
+			if detail.Index >= len(googleReasoningBlocks) {
+				googleReasoningBlocks = append(
+					googleReasoningBlocks,
+					make([]struct {
+						text     string
+						metadata *google.ReasoningMetadata
+					}, detail.Index-len(googleReasoningBlocks)+1)...,
+				)
+			}
+			thinkingBlock := googleReasoningBlocks[detail.Index]
+			if thinkingBlock.metadata == nil {
+				thinkingBlock.metadata = &google.ReasoningMetadata{}
 			}
 
 			switch detail.Type {
@@ -346,12 +352,22 @@ func languageModelStreamExtra(chunk openaisdk.ChatCompletionChunk, yield func(un
 					},
 				})
 			}
+			if detail.Index < 0 {
+				return ctx, true
+			}
+			prevLen := len(currentState.metadata.Summary)
+			if detail.Index >= prevLen {
+				currentState.metadata.Summary = append(
+					currentState.metadata.Summary,
+					make([]string, detail.Index-prevLen+1)...,
+				)
+			}
 			var textDelta string
-			if len(currentState.metadata.Summary)-1 >= detail.Index {
+			if detail.Index < prevLen {
 				currentState.metadata.Summary[detail.Index] += detail.Summary
 				textDelta = detail.Summary
 			} else {
-				currentState.metadata.Summary = append(currentState.metadata.Summary, detail.Summary)
+				currentState.metadata.Summary[detail.Index] = detail.Summary
 				textDelta = "\n" + detail.Summary
 			}
 			ctx[reasoningStartedCtx] = currentState
