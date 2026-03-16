@@ -174,6 +174,11 @@ func ReasoningEffortOption(e ReasoningEffort) *ReasoningEffort {
 	return &e
 }
 
+// Bool creates a pointer to a bool value.
+func Bool(v bool) *bool {
+	return &v
+}
+
 // NewProviderOptions creates new provider options for Vercel.
 func NewProviderOptions(opts *ProviderOptions) unillm.ProviderOptions {
 	return unillm.ProviderOptions{
