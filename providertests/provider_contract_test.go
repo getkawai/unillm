@@ -10,6 +10,7 @@ import (
 	"github.com/getkawai/unillm/providers/openai"
 	"github.com/getkawai/unillm/providers/openaicompat"
 	"github.com/getkawai/unillm/providers/openrouter"
+	"github.com/getkawai/unillm/providers/vercel"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,6 +72,20 @@ func TestProviderLanguageModelContract(t *testing.T) {
 				t.Helper()
 				p, err := google.New(
 					google.WithGeminiAPIKey("test-key"),
+				)
+				require.NoError(t, err)
+				return p
+			},
+		},
+		{
+			name:             "vercel",
+			expectedProvider: vercel.Name,
+			modelID:          "openai/gpt-4o-mini",
+			newProvider: func(t *testing.T) unillm.Provider {
+				t.Helper()
+				p, err := vercel.New(
+					vercel.WithAPIKey("test-key"),
+					vercel.WithBaseURL("https://example.invalid/v1"),
 				)
 				require.NoError(t, err)
 				return p
