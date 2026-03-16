@@ -12,7 +12,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/kaptinlin/jsonschema v0.7.3
-	github.com/openai/openai-go/v3 v3.26.0
+	github.com/openai/openai-go/v3 v3.28.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/genai v1.48.0
 )
