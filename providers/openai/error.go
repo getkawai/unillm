@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/getkawai/unillm"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 )
 
 func toProviderErr(err error) error {

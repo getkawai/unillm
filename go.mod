@@ -7,14 +7,14 @@ require (
 	github.com/RealAlexandreAI/json-repair v0.0.15
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260225200202-61df8bc4b903
 	github.com/charmbracelet/x/json v0.2.0
-	github.com/getkawai/llamalib v0.2.4
+	github.com/getkawai/llamalib v0.2.5
 	github.com/getkawai/tools v0.1.6
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/kaptinlin/jsonschema v0.7.3
-	github.com/openai/openai-go/v2 v2.7.1
+	github.com/openai/openai-go/v3 v3.28.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/genai v1.48.0
+	google.golang.org/genai v1.50.0
 )
 
 require (
@@ -47,7 +47,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect

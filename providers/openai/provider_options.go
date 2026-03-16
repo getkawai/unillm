@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/getkawai/unillm"
-	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v3"
 )
 
 // ReasoningEffort represents the reasoning effort level for OpenAI models.
