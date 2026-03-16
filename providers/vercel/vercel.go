@@ -2,6 +2,8 @@
 package vercel
 
 import (
+	"context"
+
 	"github.com/getkawai/unillm"
 	"github.com/getkawai/unillm/providers/openai"
 	"github.com/openai/openai-go/v3/option"
@@ -12,6 +14,7 @@ type options struct {
 	languageModelOptions []openai.LanguageModelOption
 	sdkOptions           []option.RequestOption
 	objectMode           unillm.ObjectMode
+	selectionCriteria    ModelSelectionCriteria
 }
 
 const (
@@ -23,6 +26,12 @@ const (
 
 // Option defines a function that configures Vercel provider options.
 type Option = func(*options)
+
+// provider wraps openai provider to add model selection.
+type provider struct {
+	inner    unillm.Provider
+	criteria ModelSelectionCriteria
+}
 
 // New creates a new Vercel AI Gateway provider with the given options.
 func New(opts ...Option) (unillm.Provider, error) {
@@ -58,7 +67,45 @@ func New(opts ...Option) (unillm.Provider, error) {
 		openai.WithLanguageModelOptions(providerOptions.languageModelOptions...),
 		openai.WithObjectMode(objectMode),
 	)
-	return openai.New(providerOptions.openaiOptions...)
+	inner, err := openai.New(providerOptions.openaiOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return &provider{
+		inner:    inner,
+		criteria: providerOptions.selectionCriteria,
+	}, nil
+}
+
+// Name implements unillm.Provider.
+func (p *provider) Name() string {
+	return Name
+}
+
+// LanguageModel implements unillm.Provider with optional auto model selection.
+func (p *provider) LanguageModel(ctx context.Context, modelID string) (unillm.LanguageModel, error) {
+	if modelID == "" {
+		catalog := GetCatalog()
+		if p.criteria != (ModelSelectionCriteria{}) {
+			if selected := catalog.SelectModel(p.criteria); selected != nil {
+				modelID = selected.ID
+			}
+		}
+		if modelID == "" {
+			modelID = catalog.GetDefaultSmallModel()
+		}
+		if modelID == "" {
+			modelID = catalog.GetDefaultLargeModel()
+		}
+	}
+	return p.inner.LanguageModel(ctx, modelID)
+}
+
+// WithModelSelection sets model selection criteria for auto-selecting models.
+func WithModelSelection(criteria ModelSelectionCriteria) Option {
+	return func(o *options) {
+		o.selectionCriteria = criteria
+	}
 }
 
 // WithAPIKey sets the API key for the Vercel provider.
