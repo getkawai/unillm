@@ -16,19 +16,24 @@ const (
 // Register Vercel provider-specific types with the global registry.
 func init() {
 	unillm.RegisterProviderType(TypeProviderOptions, func(data []byte) (unillm.ProviderOptionsData, error) {
-		var v ProviderOptions
+		type plain ProviderOptions
+		var v plain
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
-		return &v, nil
+		out := ProviderOptions(v)
+		return &out, nil
 	})
 	unillm.RegisterProviderType(TypeProviderMetadata, func(data []byte) (unillm.ProviderOptionsData, error) {
-		var v ProviderMetadata
+		type plain ProviderMetadata
+		var v plain
 		if err := json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
-		return &v, nil
+		out := ProviderMetadata(v)
+		return &out, nil
 	})
+}
 }
 
 // ReasoningEffort represents the reasoning effort level for Vercel AI Gateway.
