@@ -7,7 +7,7 @@ require (
 	github.com/RealAlexandreAI/json-repair v0.0.15
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260225200202-61df8bc4b903
 	github.com/charmbracelet/x/json v0.2.0
-	github.com/getkawai/llamalib v0.2.4
+	github.com/getkawai/llamalib v0.2.5
 	github.com/getkawai/tools v0.1.6
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0

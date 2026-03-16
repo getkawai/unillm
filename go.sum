@@ -24,8 +24,8 @@ github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/getkawai/llamalib v0.2.4 h1://ADVa1dTV8Lb0pY9dCPEIv23mU26J11PgPxpU578/g=
-github.com/getkawai/llamalib v0.2.4/go.mod h1:FK/AlntM54HXd56epgNfOIYlA7dQtUt+VzQWHGfG9n4=
+github.com/getkawai/llamalib v0.2.5 h1:2mmVOx9RBDaOiqeTAdo7KgRQEZuyeVhQz3eV9k7syds=
+github.com/getkawai/llamalib v0.2.5/go.mod h1:iO7tlpTUgU8De26ynGqMGtLRE9RYJ1Oz5WnaZ3KlUYk=
 github.com/getkawai/tools v0.1.6 h1:kt2laGY+9GnDhCLzmrFf7MPITyFX7pjaFBDIXS3Hr80=
 github.com/getkawai/tools v0.1.6/go.mod h1:eK72Vb5V/IJgLR1ki60dgm2+89ckZXU7HntqxgKw+qc=
 github.com/go-json-experiment/json v0.0.0-20251027170946-4849db3c2f7e h1:Lf/gRkoycfOBPa42vU2bbgPurFong6zXeFtPoxholzU=
